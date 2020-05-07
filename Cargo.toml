@@ -3,6 +3,13 @@ name = "color-eyre"
 version = "0.2.0"
 authors = ["Jane Lusby <jlusby@yaah.dev>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+description = ""
+repository = "https://github.com/yaahc/color-eyre"
+documentation = "https://docs.rs/color-eyre"
+readme = "README.md"
+categories = []
+keywords = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
