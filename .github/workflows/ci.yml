@@ -24,7 +24,7 @@ jobs:
         with:
           command: check
 
-  test-versions:
+  test-features:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
@@ -36,8 +36,16 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features
 
-  test-features:
+  test-versions:
     name: Test Suite
     runs-on: ubuntu-latest
     strategy:
@@ -56,11 +64,6 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
 
   test-os:
     name: Test Suite
