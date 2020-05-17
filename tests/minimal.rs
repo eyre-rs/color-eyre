@@ -1,7 +1,7 @@
 use color_eyre::{Help, Report};
 use eyre::WrapErr;
-use tracing::{info, instrument};
 use pretty_assertions::assert_eq;
+use tracing::{info, instrument};
 
 #[instrument]
 #[test]
