@@ -60,9 +60,9 @@ static EXPECTED: &str = "Error:
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   
    0: \u{1b}[31mminimal\u{1b}[0m\u{1b}[31m::\u{1b}[0m\u{1b}[31mread_file\u{1b}[0m with \u{1b}[36mpath=\"fake_file\"\u{1b}[0m
-      at tests/minimal.rs:40
+      at tests/minimal.rs:41
    1: \u{1b}[31mminimal\u{1b}[0m\u{1b}[31m::\u{1b}[0m\u{1b}[31mread_config\u{1b}[0m
-      at tests/minimal.rs:46
+      at tests/minimal.rs:47
 
 \u{1b}[36mSuggestion\u{1b}[0m: try using a file that exists next time";
 
