@@ -51,6 +51,7 @@ fn read_config() -> Result<(), Report> {
 }
 
 // Define at the bottom to prevent it from changing line numbers
+#[cfg(feature = "capture-spantrace")]
 static EXPECTED: &str = "Error: 
    0: \u{1b}[31mUnable to read config\u{1b}[0m
    1: \u{1b}[31mNo such file or directory (os error 2)\u{1b}[0m
@@ -61,5 +62,12 @@ static EXPECTED: &str = "Error:
       at tests/minimal.rs:40
    1: \u{1b}[31mminimal\u{1b}[0m\u{1b}[31m::\u{1b}[0m\u{1b}[31mread_config\u{1b}[0m
       at tests/minimal.rs:46
+
+\u{1b}[36mSuggestion\u{1b}[0m: try using a file that exists next time";
+
+#[cfg(not(feature = "capture-spantrace"))]
+static EXPECTED: &str = "Error: 
+   0: \u{1b}[31mUnable to read config\u{1b}[0m
+   1: \u{1b}[31mNo such file or directory (os error 2)\u{1b}[0m
 
 \u{1b}[36mSuggestion\u{1b}[0m: try using a file that exists next time";
