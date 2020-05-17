@@ -415,7 +415,7 @@ fn backtrace_enabled() -> bool {
         },
     };
     ENABLED.store(enabled as usize + 1, SeqCst);
-    return enabled;
+    enabled
 }
 
 #[cfg(feature = "capture-spantrace")]
