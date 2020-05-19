@@ -117,6 +117,8 @@
 //! - Only capture SpanTrace by default for better performance.
 //! - display source lines when `RUST_LIB_BACKTRACE=full` is set
 //! - store help text via [`Help`] trait and display after final report
+//! - custom `color-backtrace` configuration via `color_eyre::install`,
+//!   such as adding custom filters
 //!
 //!
 //! [`eyre`]: https://docs.rs/eyre
@@ -130,7 +132,7 @@
 //! [`eyre::Report`]: https://docs.rs/eyre/*/eyre/struct.Report.html
 //! [`eyre::Result`]: https://docs.rs/eyre/*/eyre/type.Result.html
 //! [`Context`]: struct.Context.html
-#![doc(html_root_url = "https://docs.rs/color-eyre/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/color-eyre/0.3.2")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
     missing_debug_implementations,
