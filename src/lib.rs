@@ -161,8 +161,8 @@ use ansi_term::Color::*;
 use backtrace::Backtrace;
 pub use color_backtrace::BacktracePrinter;
 use eyre::*;
-pub use help::Help;
 use help::HelpInfo;
+pub use help::{Help, Section, SectionExt};
 use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
 #[cfg(feature = "capture-spantrace")]
@@ -195,6 +195,7 @@ pub struct Context {
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
     help: Vec<HelpInfo>,
+    custom_sections: Vec<Section>,
 }
 
 #[derive(Debug)]
@@ -319,6 +320,7 @@ impl EyreContext for Context {
             #[cfg(feature = "capture-spantrace")]
             span_trace,
             help: Vec::new(),
+            custom_sections: Vec::new(),
         }
     }
 
@@ -345,6 +347,12 @@ impl EyreContext for Context {
             buf.clear();
             write!(&mut buf, "{}", error).unwrap();
             write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
+        }
+
+        for section in &self.custom_sections {
+            if !section.is_empty() {
+                write!(f, "\n\n{:?}", section)?;
+            }
         }
 
         #[cfg(feature = "capture-spantrace")]
