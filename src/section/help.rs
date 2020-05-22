@@ -1,3 +1,4 @@
+//! Provides an extension trait for attaching `Section`s to error reports.
 use crate::{section, Report, Result, Section};
 use ansi_term::Color::*;
 use std::fmt::{self, Display};

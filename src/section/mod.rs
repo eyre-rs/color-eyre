@@ -1,6 +1,8 @@
 //! Helpers for adding custom sections to error reports
 use std::fmt::{self, Display, Write};
 
+pub mod help;
+
 #[non_exhaustive]
 ///
 #[derive(Debug)]
