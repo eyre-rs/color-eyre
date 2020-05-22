@@ -350,9 +350,7 @@ impl EyreContext for Context {
         }
 
         for section in &self.custom_sections {
-            if !section.is_empty() {
-                write!(f, "\n\n{:?}", section)?;
-            }
+            write!(f, "\n\n{:?}", section)?;
         }
 
         #[cfg(feature = "capture-spantrace")]

@@ -17,8 +17,16 @@ impl Output for Command {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(eyre!("cmd exited with non-zero status code"))
-                .with_section(|| "Stdout:".body(&stdout).skip_if(|| stdout.is_empty()))
-                .with_section(|| "Stderr:".body(&stderr).skip_if(|| stderr.is_empty()))
+                .with_section(move || {
+                    "Stdout:"
+                        .skip_if(|| stdout.is_empty())
+                        .body(stdout.to_owned())
+                })
+                .with_section(move || {
+                    "Stderr:"
+                        .body(stderr.to_owned())
+                        .skip_if(|| stderr.is_empty())
+                })
         } else {
             Ok(stdout.into())
         }
