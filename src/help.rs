@@ -3,14 +3,67 @@ use ansi_term::Color::*;
 use std::fmt::{self, Display, Write};
 
 /// A helper trait for attaching help text to errors to be displayed after the chain of errors
+///
+/// `color_eyre` provides two types of help text that can be attached to error reports, custom
+/// sections and pre-configured sections. Custom sections are added via the `section` and
+/// `with_section` methods, and give maximum control over formatting. For more details check out
+/// the docs for [`Section`].
+///
+/// The pre-configured sections are provided via `suggestion`, `warning`, and `note`. These
+/// sections are displayed after all other sections with no extra newlines between subsequent Help
+/// sections. They consist only of a header portion and are prepended with a colored string
+/// indicating the kind of section, e.g. `Note: This might have failed due to ..."
+///
+/// [`Section`]: struct.Section.html
 pub trait Help<T>: private::Sealed {
     /// Add a section to an error report, to be displayed after the chain of errors.
+    ///
+    /// Sections are displayed in the order they are added to the error report. They are displayed
+    /// immediately after the `Error:` section and before the `SpanTrace` and `Backtrace` sections.
+    /// They consist of a header and an optional body. The body of the section is indented by
+    /// default.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{Report, Help};
+    /// use eyre::eyre;
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .section("Please report bugs to https://real.url/bugs")?;
+    /// # Ok::<_, Report>(())
+    /// ```
     fn section<C>(self, section: C) -> Result<T>
     where
         C: Into<Section>;
 
     /// Add a section to an error report, to be displayed after the chain of errors, which is
     /// lazily evaluated only in the case of an error
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use color_eyre::{Report, Help, SectionExt};
+    /// use eyre::eyre;
+    ///
+    /// let output = std::process::Command::new("ls")
+    ///     .output()?;
+    ///
+    /// let output = if !output.status.success() {
+    ///     let stderr = String::from_utf8_lossy(&output.stderr);
+    ///     Err(eyre!("cmd exited with non-zero status code"))
+    ///         .with_section(move || {
+    ///             "Stderr:"
+    ///                 .skip_if(|| stderr.is_empty())
+    ///                 .body(stderr.trim().to_string())
+    ///         })?
+    /// } else {
+    ///     String::from_utf8_lossy(&output.stdout)
+    /// };
+    ///
+    /// println!("{}", output);
+    /// # Ok::<_, Report>(())
+    /// ```
     fn with_section<C, F>(self, section: F) -> Result<T>
     where
         C: Into<Section>,
@@ -103,95 +156,64 @@ pub trait Help<T>: private::Sealed {
         F: FnOnce() -> C;
 }
 
-/// Extension trait for customizing the content of a custom section
-///
-/// # Example
-///
-/// ```rust
-/// use eyre::eyre;
-/// use color_eyre::{Report, Help, SectionExt};
-///
-/// fn run_command() -> Result<(), Report> {
-///     let stderr = "this command doesn't exist and this stderr output isn't real";
-///
-///     Err(eyre!("error running command"))
-///         .with_section(|| "Stderr:".body(stderr))
-/// }
-/// ```
+/// Extension trait for customizing the content of a `Section`
 pub trait SectionExt {
-    /// Add a body to a section
+    /// Add a body to a `Section`
     ///
     /// Bodies are always indented to the same level that error messages and spans are indented.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use color_eyre::{Help, SectionExt, Report};
+    /// use eyre::eyre;
+    ///
+    /// let all_in_header = "header\n   body\n   body";
+    /// let report = Err::<(), Report>(eyre!("an error occurred"))
+    ///     .section(all_in_header)
+    ///     .unwrap_err();
+    ///
+    /// let just_header = "header";
+    /// let just_body = "body\nbody";
+    /// let report2 = Err::<(), Report>(eyre!("an error occurred"))
+    ///     .section(just_header.body(just_body))
+    ///     .unwrap_err();
+    ///
+    /// assert_eq!(format!("{:?}", report), format!("{:?}", report2))
+    /// ```
     fn body<C>(self, body: C) -> Section
     where
         C: Display + Send + Sync + 'static;
 
-    /// Skip printing section if condition is true
+    /// Skip printing `Section` if condition is true
     ///
     /// Useful for skipping sections based on the content of its body, even if the section header
     /// is not empty
     ///
     /// # Examples
     ///
-    /// By default `color-eyre` will skip sections if they're empty, to prevent unintentional
-    /// newlines from sneaking into error reports. The following section would not end up changing
-    /// the output for an error report:
-    ///
-    /// ```rust
-    /// use eyre::eyre;
-    /// use color_eyre::{Report, Help};
-    ///
-    /// let header = String::new();
-    ///
-    /// let base_report: Report = eyre!("an error occurred");
-    /// let original_string = format!("{:?}", base_report);
-    ///
-    /// let res: Result<(), Report> = Err(base_report).section(header);
-    /// let new_report = res.unwrap_err();
-    /// let new_string = format!("{:?}", new_report);
-    ///
-    /// assert_eq!(original_string, new_string);
-    /// ```
-    ///
-    /// However often times sections have are setup with a static string as the header, where the
-    /// body itself is the only part that changes. `color-eyre` wont skip these sections by default
-    /// even if the body is empty, which can result in undesireable cruft sneaking into your error
-    /// reports.
-    ///
     /// ```rust
     /// use eyre::eyre;
     /// use color_eyre::{SectionExt, Report, Help};
     ///
+    /// fn add_body(report: Report, body: String) -> Result<(), Report> {
+    ///     Err(report)
+    ///         .section("ExtraInfo:".skip_if(|| body.is_empty()).body(body))
+    /// }
+    ///
+    /// let report = eyre!("an error occurred");
+    /// let before = format!("{:?}", report);
     /// let body = String::new();
+    /// let report = add_body(report, body).unwrap_err();
+    /// let after = format!("{:?}", report);
+    /// assert_eq!(before, after);
     ///
-    /// let base_report: Report = eyre!("an error occurred");
-    /// let original_string = format!("{:?}", base_report);
-    ///
-    /// let res: Result<(), Report> = Err(base_report).section("ExtraInfo:".body(body));
-    /// let new_report = res.unwrap_err();
-    /// let new_string = format!("{:?}", new_report);
-    ///
-    /// assert_ne!(original_string, new_string);
-    /// ```
-    ///
-    /// `skip_if` can be used to help with these situations, where you can set a flag within the
-    /// generated `Section` that if set will prevent it from being pushed into the `Report`.
-    ///
-    /// ```rust
-    /// use eyre::eyre;
-    /// use color_eyre::{SectionExt, Report, Help};
-    ///
-    /// let body = String::new();
-    ///
-    /// let base_report: Report = eyre!("an error occurred");
-    /// let original_string = format!("{:?}", base_report);
-    ///
-    /// let res: Result<(), Report> = Err(base_report)
-    ///     .section("ExtraInfo:".skip_if(|| body.is_empty()).body(body));
-    /// let new_report = res.unwrap_err();
-    /// let new_string = format!("{:?}", new_report);
-    ///
-    /// assert_eq!(original_string, new_string);
+    /// let report = eyre!("an error occurred");
+    /// let before = format!("{:?}", report);
+    /// let body = String::from("Some actual text here");
+    /// let report = add_body(report, body).unwrap_err();
+    /// let after = format!("{:?}", report);
+    /// assert_ne!(before, after);
     /// ```
     fn skip_if<F>(self, condition: F) -> Section
     where
@@ -208,7 +230,9 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut().help.push(HelpInfo::Note(Box::new(context)));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Note(Box::new(context))).order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -220,9 +244,9 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut()
-                .help
-                .push(HelpInfo::Note(Box::new(context())));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Note(Box::new(context()))).order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -233,9 +257,9 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut()
-                .help
-                .push(HelpInfo::Warning(Box::new(context)));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Warning(Box::new(context))).order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -247,9 +271,9 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut()
-                .help
-                .push(HelpInfo::Warning(Box::new(context())));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Warning(Box::new(context()))).order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -260,9 +284,9 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut()
-                .help
-                .push(HelpInfo::Suggestion(Box::new(context)));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Suggestion(Box::new(context))).order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -274,9 +298,10 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.context_mut()
-                .help
-                .push(HelpInfo::Suggestion(Box::new(context())));
+            e.context_mut().sections.push(
+                Section::from(HelpInfo::Suggestion(Box::new(context())))
+                    .order(Order::AfterBackTrace),
+            );
             e
         })
     }
@@ -290,8 +315,8 @@ where
             let mut e = e.into();
             let section = section().into();
 
-            if !section.should_skip {
-                e.context_mut().custom_sections.push(section);
+            if !matches!(section.order, Order::SkipEntirely) {
+                e.context_mut().sections.push(section);
             }
 
             e
@@ -306,8 +331,8 @@ where
             let mut e = e.into();
             let section = section.into();
 
-            if !section.should_skip {
-                e.context_mut().custom_sections.push(section);
+            if !matches!(section.order, Order::SkipEntirely) {
+                e.context_mut().sections.push(section);
             }
 
             e
@@ -333,7 +358,11 @@ where
         F: FnOnce() -> bool,
     {
         let mut section = Section::from(self);
-        section.should_skip = condition();
+        section.order = if condition() {
+            Order::SkipEntirely
+        } else {
+            section.order
+        };
         section
     }
 }
@@ -346,18 +375,26 @@ pub(crate) enum HelpInfo {
 
 /// A custom section for an error report.
 ///
-/// Sections are displayed in the order they are added to the error report. They are displayed
-/// immediately after the `Error:` section and before the `SpanTrace` and `Backtrace` sections.
-/// The body of the section is indented by default.
+/// # Details
 ///
 /// Sections consist of two parts, a header, and an optional body. The header can contain any
-/// nuber of lines and has no indentation applied to it by default. The body can contain any
+/// number of lines and has no indentation applied to it by default. The body can contain any
 /// number of lines and is always written after the header with indentation inserted before
-/// every line. The body also has trailling whitespace trimmed by default.
+/// every line.
+///
+/// # Construction
+///
+/// Sections are meant to be constructed via `Into<Section>`, which is implemented for all types
+/// that implement `Display`. The constructed `Section` then takes ownership it the `Display` type
+/// and boxes it internally for use later when printing the report.
+///
+/// # Examples
 ///
 /// ```rust
+/// use color_eyre::{SectionExt, Help, Report};
 /// use eyre::eyre;
-/// use color_eyre::{Report, Help};
+/// use std::process::Command;
+/// use tracing::instrument;
 ///
 /// trait Output {
 ///     fn output2(&mut self) -> Result<String, Report>;
@@ -373,8 +410,16 @@ pub(crate) enum HelpInfo {
 ///         if !output.status.success() {
 ///             let stderr = String::from_utf8_lossy(&output.stderr);
 ///             Err(eyre!("cmd exited with non-zero status code"))
-///                 .with_section(|| "Stdout:".skip_if(|| stdout.is_empty()).body(stdout))
-///                 .with_section(|| "Stderr:".skip_if(|| stderr.is_empty()).body(stderr))
+///                 .with_section(move || {
+///                     "Stdout:"
+///                         .skip_if(|| stdout.is_empty())
+///                         .body(stdout.trim().to_string())
+///                 })
+///                 .with_section(move || {
+///                     "Stderr:"
+///                         .skip_if(|| stderr.is_empty())
+///                         .body(stderr.trim().to_string())
+///                 })
 ///         } else {
 ///             Ok(stdout.into())
 ///         }
@@ -384,7 +429,26 @@ pub(crate) enum HelpInfo {
 pub struct Section {
     header: Box<dyn Display + Send + Sync + 'static>,
     body: Option<Box<dyn Display + Send + Sync + 'static>>,
-    should_skip: bool,
+    pub(crate) order: Order,
+}
+
+impl Section {
+    fn order(mut self, order: Order) -> Self {
+        self.order = order;
+        self
+    }
+}
+
+#[non_exhaustive]
+///
+#[derive(Debug)]
+pub(crate) enum Order {
+    ///
+    AfterErrMsgs,
+    ///
+    AfterBackTrace,
+    ///
+    SkipEntirely,
 }
 
 impl Display for HelpInfo {
@@ -407,7 +471,7 @@ where
         Self {
             header,
             body: None,
-            should_skip: false,
+            order: Order::AfterErrMsgs,
         }
     }
 }

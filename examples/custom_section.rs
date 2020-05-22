@@ -20,12 +20,12 @@ impl Output for Command {
                 .with_section(move || {
                     "Stdout:"
                         .skip_if(|| stdout.is_empty())
-                        .body(stdout.to_owned())
+                        .body(stdout.trim().to_string())
                 })
                 .with_section(move || {
                     "Stderr:"
-                        .body(stderr.to_owned())
                         .skip_if(|| stderr.is_empty())
+                        .body(stderr.trim().to_string())
                 })
         } else {
             Ok(stdout.into())

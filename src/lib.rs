@@ -161,7 +161,7 @@ use ansi_term::Color::*;
 use backtrace::Backtrace;
 pub use color_backtrace::BacktracePrinter;
 use eyre::*;
-use help::HelpInfo;
+use help::Order;
 pub use help::{Help, Section, SectionExt};
 use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
@@ -194,8 +194,7 @@ pub struct Context {
     backtrace: Option<Backtrace>,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
-    help: Vec<HelpInfo>,
-    custom_sections: Vec<Section>,
+    sections: Vec<Section>,
 }
 
 #[derive(Debug)]
@@ -319,8 +318,7 @@ impl EyreContext for Context {
             backtrace,
             #[cfg(feature = "capture-spantrace")]
             span_trace,
-            help: Vec::new(),
-            custom_sections: Vec::new(),
+            sections: Vec::new(),
         }
     }
 
@@ -349,7 +347,11 @@ impl EyreContext for Context {
             write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
         }
 
-        for section in &self.custom_sections {
+        for section in self
+            .sections
+            .iter()
+            .filter(|s| matches!(s.order, Order::AfterErrMsgs))
+        {
             write!(f, "\n\n{:?}", section)?;
         }
 
@@ -384,12 +386,22 @@ impl EyreContext for Context {
                 "{}",
                 bt_str
             )?;
-        } else if !self.help.is_empty() {
+        } else if self
+            .sections
+            .iter()
+            .filter(|s| matches!(s.order, Order::AfterBackTrace))
+            .next()
+            .is_some()
+        {
             writeln!(f)?;
         }
 
-        for help in &self.help {
-            write!(f, "\n{}", help)?;
+        for section in self
+            .sections
+            .iter()
+            .filter(|s| matches!(s.order, Order::AfterBackTrace))
+        {
+            write!(f, "\n{:?}", section)?;
         }
 
         Ok(())
