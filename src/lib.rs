@@ -389,8 +389,7 @@ impl EyreContext for Context {
         } else if self
             .sections
             .iter()
-            .filter(|s| matches!(s.order, Order::AfterBackTrace))
-            .next()
+            .find(|s| matches!(s.order, Order::AfterBackTrace))
             .is_some()
         {
             writeln!(f)?;
