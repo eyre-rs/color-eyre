@@ -1,5 +1,11 @@
-//! A custom context for the [`eyre`] crate for colorful error reports, suggestions,
-//! and [`tracing-error`] support.
+//! A custom context for the [`eyre`] crate for colorful error reports with suggestions, custom
+//! sections, [`tracing-error`] support, and backtraces on stable.
+//!
+//! ## TLDR
+//!
+//! `color_eyre` lets you easily build error reports that look like this:
+//!
+//! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 //!
 //! ## Setup
 //!
@@ -161,10 +167,11 @@ use ansi_term::Color::*;
 use backtrace::Backtrace;
 pub use color_backtrace::BacktracePrinter;
 use eyre::*;
-use help::Order;
-pub use help::{Help, Section, SectionExt};
+pub use help::Help;
 use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
+use section::Order;
+pub use section::{Section, SectionExt};
 #[cfg(feature = "capture-spantrace")]
 use std::error::Error;
 use std::{
@@ -176,6 +183,7 @@ use std::{
 use tracing_error::{ExtractSpanTrace, SpanTrace, SpanTraceStatus};
 
 mod help;
+pub mod section;
 
 static CONFIG: OnceCell<BacktracePrinter> = OnceCell::new();
 
