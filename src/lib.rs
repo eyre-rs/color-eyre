@@ -5,7 +5,7 @@
 //!
 //! `color_eyre` lets you easily build error reports that look like this:
 //!
-//! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/sections/pictures/custom_section.png)
+//! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 //!
 //! ## Setup
 //!
@@ -171,7 +171,7 @@
 //! Running `cargo run --example custom_section` shows us how these sections are included in the
 //! output:
 //!
-//! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/sections/pictures/custom_section.png)
+//! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 //!
 //! As you can see, only the `Stderr:` section actually gets included, because the `cat` command
 //! fails stdout ends up being empty and is skipped in the final report. Giving us a short and
