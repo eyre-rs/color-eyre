@@ -175,7 +175,7 @@
 //!
 //! As you can see, only the `Stderr:` section actually gets included, because the `cat` command
 //! fails stdout ends up being empty and is skipped in the final report. Giving us a short and
-//! concise error report indicating exactly what was attempted and exactly how it failed.
+//! concise error report indicating exactly what was attempted and how it failed.
 //!
 //! ### Custom configuration for `color-backtrace` for setting custom filters and more
 //!

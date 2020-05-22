@@ -4,14 +4,10 @@ use std::fmt::{self, Display, Write};
 pub mod help;
 
 #[non_exhaustive]
-///
 #[derive(Debug)]
 pub(crate) enum Order {
-    ///
     AfterErrMsgs,
-    ///
     AfterBackTrace,
-    ///
     SkipEntirely,
 }
 
