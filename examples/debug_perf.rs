@@ -4,24 +4,33 @@ use color_eyre::{Help, Report};
 use eyre::{eyre, WrapErr};
 use tracing::instrument;
 
-#[instrument]
 fn main() -> Result<(), Report> {
     #[cfg(feature = "capture-spantrace")]
     install_tracing();
 
+    time_report();
+
+    Ok(())
+}
+
+#[instrument]
+fn time_report() {
+    time_report_inner()
+}
+
+#[instrument]
+fn time_report_inner() {
     let start = std::time::Instant::now();
     let report = Err::<(), Report>(eyre!("fake error"))
         .wrap_err("wrapped error")
         .suggestion("try using a file that exists next time")
         .unwrap_err();
 
-    let _ = format!("Error: {:?}", report);
+    let _ = println!("Error: {:?}", report);
     drop(report);
     let end = std::time::Instant::now();
 
     dbg!(end - start);
-
-    Ok(())
 }
 
 #[cfg(feature = "capture-spantrace")]
