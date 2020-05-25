@@ -440,6 +440,14 @@ impl EyreContext for Context {
             write!(f, "\n\n{:?}", section)?;
         }
 
+        for section in self
+            .sections
+            .iter()
+            .filter(|s| matches!(s.order, Order::BeforeSpanTrace))
+        {
+            write!(f, "\n\n{:?}", section)?;
+        }
+
         #[cfg(feature = "capture-spantrace")]
         {
             let span_trace = self

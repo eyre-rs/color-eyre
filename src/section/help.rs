@@ -70,6 +70,26 @@ pub trait Help<T>: private::Sealed {
         C: Into<Section>,
         F: FnOnce() -> C;
 
+    /// Add an error section to an error report, to be displayed after the primary error message
+    /// section.
+    ///
+    /// Sections are displayed in the order they are added to the error report. They are displayed
+    /// immediately after the `Error:` section and before the `SpanTrace` and `Backtrace` sections.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{Report, Help};
+    /// use eyre::eyre;
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .section("Please report bugs to https://real.url/bugs")?;
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn error<E>(self, error: E) -> Result<T>
+    where
+        E: std::error::Error + Send + Sync + 'static;
+
     /// Add a Note to an error report, to be displayed after the chain of errors.
     ///
     /// # Examples
@@ -277,6 +297,22 @@ where
                 e.context_mut().sections.push(section);
             }
 
+            e
+        })
+    }
+
+    fn error<E2>(self, error: E2) -> Result<T>
+    where
+        E2: std::error::Error + Send + Sync + 'static,
+    {
+        self.map_err(|e| {
+            let mut e = e.into();
+            let section = Section {
+                inner: section::SectionKind::Error(Box::new(error)),
+                order: section::Order::AfterErrMsgs,
+            };
+
+            e.context_mut().sections.push(section);
             e
         })
     }

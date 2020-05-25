@@ -1,4 +1,6 @@
 //! Helpers for adding custom sections to error reports
+use ansi_term::Color::*;
+use indenter::indented;
 use std::fmt::{self, Display, Write};
 
 pub mod help;
@@ -7,6 +9,7 @@ pub mod help;
 #[derive(Debug)]
 pub(crate) enum Order {
     AfterErrMsgs,
+    BeforeSpanTrace,
     AfterBackTrace,
     SkipEntirely,
 }
@@ -65,9 +68,17 @@ pub(crate) enum Order {
 /// }
 /// ```
 pub struct Section {
-    pub(crate) header: Box<dyn Display + Send + Sync + 'static>,
-    pub(crate) body: Option<Box<dyn Display + Send + Sync + 'static>>,
+    pub(crate) inner: SectionKind,
     pub(crate) order: Order,
+}
+
+pub(crate) enum SectionKind {
+    Header(Box<dyn Display + Send + Sync + 'static>),
+    WithBody(
+        Box<dyn Display + Send + Sync + 'static>,
+        Box<dyn Display + Send + Sync + 'static>,
+    ),
+    Error(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 /// Extension trait for customizing the content of a `Section`
@@ -148,9 +159,20 @@ where
     where
         C: Display + Send + Sync + 'static,
     {
-        let mut section = Section::from(self);
-        section.body = Some(Box::new(body));
-        section
+        let section = Section::from(self);
+
+        let header = match section.inner {
+            SectionKind::Header(header) => header,
+            SectionKind::WithBody(header, _body) => header,
+            SectionKind::Error(_) => unreachable!("bodies cannot be added to Error sections"),
+        };
+
+        let inner = SectionKind::WithBody(header, Box::new(body));
+
+        Section {
+            inner,
+            order: section.order,
+        }
     }
 
     fn skip_if<F>(self, condition: F) -> Section
@@ -158,11 +180,13 @@ where
         F: FnOnce() -> bool,
     {
         let mut section = Section::from(self);
+
         section.order = if condition() {
             Order::SkipEntirely
         } else {
             section.order
         };
+
         section
     }
 }
@@ -172,26 +196,51 @@ where
     T: Display + Send + Sync + 'static,
 {
     fn from(header: T) -> Self {
-        let header = Box::new(header);
+        let inner = SectionKind::Header(Box::new(header));
 
         Self {
-            header,
-            body: None,
-            order: Order::AfterErrMsgs,
+            inner,
+            order: Order::BeforeSpanTrace,
         }
     }
 }
 
 impl fmt::Debug for Section {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.header)?;
-        if let Some(body) = &self.body {
-            writeln!(f)?;
-            write!(
-                indenter::indented(f).with_format(indenter::Format::Uniform { indentation: "   " }),
-                "{}",
-                body
-            )?;
+        write!(f, "{}", self.inner)
+    }
+}
+
+impl fmt::Display for SectionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SectionKind::Header(header) => write!(f, "{}", header)?,
+            SectionKind::WithBody(header, body) => {
+                write!(f, "{}", header)?;
+                writeln!(f)?;
+                write!(
+                    indenter::indented(f)
+                        .with_format(indenter::Format::Uniform { indentation: "   " }),
+                    "{}",
+                    body
+                )?;
+            }
+            SectionKind::Error(error) => {
+                // a lot here
+                let errors = std::iter::successors(
+                    Some(error.as_ref() as &(dyn std::error::Error + 'static)),
+                    |e| e.source(),
+                );
+
+                write!(f, "Error:")?;
+                let mut buf = String::new();
+                for (n, error) in errors.enumerate() {
+                    writeln!(f)?;
+                    buf.clear();
+                    write!(&mut buf, "{}", error).unwrap();
+                    write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
+                }
+            }
         }
 
         Ok(())
