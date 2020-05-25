@@ -111,7 +111,7 @@ pub trait SectionExt {
     ///
     /// fn add_body(report: Report, body: String) -> Result<(), Report> {
     ///     Err(report)
-    ///         .section_with(|| "ExtraInfo:".skip_if(|| body.is_empty()).body(body))
+    ///         .with_section(|| "ExtraInfo:".skip_if(|| body.is_empty()).body(body))
     /// }
     ///
     /// let report = eyre!("an error occurred");
