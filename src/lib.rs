@@ -3,7 +3,7 @@
 //!
 //! ## TLDR
 //!
-//! `color_eyre` lets you easily build error reports that look like this:
+//! `color_eyre` helps you build error reports that look like this:
 //!
 //! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 //!
@@ -173,9 +173,9 @@
 //!
 //! ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 //!
-//! As you can see, only the `Stderr:` section actually gets included, because the `cat` command
-//! fails stdout ends up being empty and is skipped in the final report. Giving us a short and
-//! concise error report indicating exactly what was attempted and how it failed.
+//! Only the `Stderr:` section actually gets included. The `cat` command fails, so stdout ends up
+//! being empty and is skipped in the final report. This gives us a short and concise error report
+//! indicating exactly what was attempted and how it failed.
 //!
 //! ### Custom configuration for `color-backtrace` for setting custom filters and more
 //!
@@ -210,14 +210,13 @@
 //! [`backtrace::Backtrace`]: https://docs.rs/backtrace/*/backtrace/struct.Backtrace.html
 //! [`tracing_error::SpanTrace`]: https://docs.rs/tracing-error/*/tracing_error/struct.SpanTrace.html
 //! [`color-spantrace`]: https://github.com/yaahc/color-spantrace
-//! [`Help`]: trait.Help.html
+//! [`Help`]: https://docs.rs/color-eyre/*/color_eyre/trait.Help.html
 //! [`eyre::Report`]: https://docs.rs/eyre/*/eyre/struct.Report.html
 //! [`eyre::Result`]: https://docs.rs/eyre/*/eyre/type.Result.html
-//! [`Context`]: struct.Context.html
+//! [`Context`]: https://docs.rs/color-eyre/*/color_eyre/struct.Context.html
 //! [`examples/usage.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/usage.rs
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
-//! [`examples/custom_section.rs`]:
-//! https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
+//! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
 #![doc(html_root_url = "https://docs.rs/color-eyre/0.3.2")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(

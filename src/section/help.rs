@@ -38,8 +38,8 @@ pub trait Help<T>: private::Sealed {
     where
         C: Into<Section>;
 
-    /// Add a Section to an error report, to be displayed after the chain of errors, which is
-    /// lazily evaluated only in the case of an error.
+    /// Add a Section to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Section is lazily evaluated only in the case of an error.
     ///
     /// # Examples
     ///
@@ -99,8 +99,8 @@ pub trait Help<T>: private::Sealed {
     where
         C: Display + Send + Sync + 'static;
 
-    /// Add a Note to an error report, to be displayed after the chain of errors, which is lazily
-    /// evaluated only in the case of an error.
+    /// Add a Note to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Note is lazily evaluated only in the case of an error.
     ///
     /// # Examples
     ///
@@ -137,8 +137,8 @@ pub trait Help<T>: private::Sealed {
     where
         C: Display + Send + Sync + 'static;
 
-    /// Add a Warning to an error report, to be displayed after the chain of errors, which is lazily
-    /// evaluated only in the case of an error.
+    /// Add a Warning to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Warning is lazily evaluated only in the case of an error.
     fn with_warning<C, F>(self, f: F) -> Result<T>
     where
         C: Display + Send + Sync + 'static,
@@ -149,8 +149,8 @@ pub trait Help<T>: private::Sealed {
     where
         C: Display + Send + Sync + 'static;
 
-    /// Add a Suggestion to an error report, to be displayed after the chain of errors, which is lazily
-    /// evaluated only in the case of an error.
+    /// Add a Suggestion to an error report, to be displayed after the chain of errors. The closure
+    /// to create the Suggestion is lazily evaluated only in the case of an error.
     fn with_suggestion<C, F>(self, f: F) -> Result<T>
     where
         C: Display + Send + Sync + 'static,

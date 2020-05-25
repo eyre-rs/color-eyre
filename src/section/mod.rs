@@ -23,7 +23,7 @@ pub(crate) enum Order {
 /// # Construction
 ///
 /// Sections are meant to be constructed via `Into<Section>`, which is implemented for all types
-/// that implement `Display`. The constructed `Section` then takes ownership it the `Display` type
+/// that implement `Display`. The constructed `Section` then takes ownership of the `Display` type
 /// and boxes it internally for use later when printing the report.
 ///
 /// # Examples
@@ -99,10 +99,9 @@ pub trait SectionExt {
     where
         C: Display + Send + Sync + 'static;
 
-    /// Skip printing `Section` if condition is true
+    /// Skip a section based on some condition. For example, skip a section if the body is empty.
     ///
-    /// Useful for skipping sections based on the content of its body, even if the section header
-    /// is not empty
+    /// The skipped section is not stored in the report and is instead immediately dropped.
     ///
     /// # Examples
     ///
@@ -112,7 +111,7 @@ pub trait SectionExt {
     ///
     /// fn add_body(report: Report, body: String) -> Result<(), Report> {
     ///     Err(report)
-    ///         .section("ExtraInfo:".skip_if(|| body.is_empty()).body(body))
+    ///         .section_with(|| "ExtraInfo:".skip_if(|| body.is_empty()).body(body))
     /// }
     ///
     /// let report = eyre!("an error occurred");

@@ -16,7 +16,7 @@ sections, [`tracing-error`] support, and backtraces on stable.
 
 ## TLDR
 
-`color_eyre` lets you easily build error reports that look like this:
+`color_eyre` helps you build error reports that look like this:
 
 ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 
@@ -58,8 +58,8 @@ color-eyre = { version = "0.3", default-features = false }
 
 ### Multiple report format verbosity levels
 
-`color-eyre` provides three different report formats for how it formats the captured `SpanTrace`
-and `Backtrace`: minimal, short, and full. Take the following example, taken from
+`color-eyre` provides 3 different report formats for how it formats the captured `SpanTrace`
+and `Backtrace`, minimal, short, and full. Take the following example, taken from
 [`examples/usage.rs`]:
 
 ```rust
@@ -186,9 +186,9 @@ output:
 
 ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 
-As you can see, only the `Stderr:` section actually gets included, because the `cat` command
-fails stdout ends up being empty and is skipped in the final report. Giving us a short and
-concise error report indicating exactly what was attempted and how it failed.
+Only the `Stderr:` section actually gets included. The `cat` command fails, so stdout ends up
+being empty and is skipped in the final report. This gives us a short and concise error report
+indicating exactly what was attempted and how it failed.
 
 ### Custom configuration for `color-backtrace` for setting custom filters and more
 
