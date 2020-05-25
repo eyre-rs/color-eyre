@@ -5,7 +5,7 @@ use std::fmt::{self, Display};
 
 /// A helper trait for attaching help text to errors to be displayed after the chain of errors
 ///
-/// `color_eyre` provides two types of help text that can be attached to error reports, custom
+/// `color_eyre` provides two types of help text that can be attached to error reports: custom
 /// sections and pre-configured sections. Custom sections are added via the `section` and
 /// `with_section` methods, and give maximum control over formatting. For more details check out
 /// the docs for [`Section`].
@@ -38,8 +38,8 @@ pub trait Help<T>: private::Sealed {
     where
         C: Into<Section>;
 
-    /// Add a section to an error report, to be displayed after the chain of errors, which is
-    /// lazily evaluated only in the case of an error
+    /// Add a Section to an error report, to be displayed after the chain of errors, which is
+    /// lazily evaluated only in the case of an error.
     ///
     /// # Examples
     ///
@@ -70,7 +70,7 @@ pub trait Help<T>: private::Sealed {
         C: Into<Section>,
         F: FnOnce() -> C;
 
-    /// Add a note to an error report, to be displayed after the chain of errors.
+    /// Add a Note to an error report, to be displayed after the chain of errors.
     ///
     /// # Examples
     ///

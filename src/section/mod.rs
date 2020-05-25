@@ -15,7 +15,7 @@ pub(crate) enum Order {
 ///
 /// # Details
 ///
-/// Sections consist of two parts, a header, and an optional body. The header can contain any
+/// Sections consist of two parts, a header: and an optional body. The header can contain any
 /// number of lines and has no indentation applied to it by default. The body can contain any
 /// number of lines and is always written after the header with indentation inserted before
 /// every line.
@@ -74,7 +74,7 @@ pub struct Section {
 pub trait SectionExt {
     /// Add a body to a `Section`
     ///
-    /// Bodies are always indented to the same level that error messages and spans are indented.
+    /// Bodies are always indented to the same level as error messages and spans.
     ///
     /// # Examples
     ///

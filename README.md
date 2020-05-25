@@ -58,8 +58,8 @@ color-eyre = { version = "0.3", default-features = false }
 
 ### Multiple report format verbosity levels
 
-`color-eyre` provides 3 different report formats for how it formats the captured `SpanTrace`
-and `Backtrace`, minimal, short, and full. Take the following example, taken from
+`color-eyre` provides three different report formats for how it formats the captured `SpanTrace`
+and `Backtrace`: minimal, short, and full. Take the following example, taken from
 [`examples/usage.rs`]:
 
 ```rust
