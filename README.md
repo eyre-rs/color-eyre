@@ -117,7 +117,7 @@ report like this:
 <br>
 
 Running `RUST_LIB_BACKTRACE=1 cargo run --example usage` tells `color-eyre` to use the short
-format, which additionally captures a [`backtrace::Backtrace`]:
+format, which additionally capture a [`backtrace::Backtrace`]:
 
 ![short report format](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/short.png)
 
