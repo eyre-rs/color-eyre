@@ -73,21 +73,48 @@ pub trait Help<T>: private::Sealed {
     /// Add an error section to an error report, to be displayed after the primary error message
     /// section.
     ///
-    /// Sections are displayed in the order they are added to the error report. They are displayed
-    /// immediately after the `Error:` section and before the `SpanTrace` and `Backtrace` sections.
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{Report, Help};
+    /// use eyre::eyre;
+    /// use thiserror::Error;
+    ///
+    /// #[derive(Debug, Error)]
+    /// #[error("{0}")]
+    /// struct StrError(&'static str);
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .error(StrError("got one error"))
+    ///     .error(StrError("got a second error"))?;
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn error<E>(self, error: E) -> Result<T>
+    where
+        E: std::error::Error + Send + Sync + 'static;
+
+    /// Add an error section to an error report, to be displayed after the primary error message
+    /// section. The closure to create the Section is lazily evaluated only in the case of an error.
     ///
     /// # Examples
     ///
     /// ```rust,should_panic
     /// use color_eyre::{Report, Help};
     /// use eyre::eyre;
+    /// use thiserror::Error;
+    ///
+    /// #[derive(Debug, Error)]
+    /// #[error("{0}")]
+    /// struct StringError(String);
     ///
     /// Err(eyre!("command failed"))
-    ///     .section("Please report bugs to https://real.url/bugs")?;
+    ///     .with_error(|| StringError("got one error".into()))
+    ///     .with_error(|| StringError("got a second error".into()))?;
     /// # Ok::<_, Report>(())
     /// ```
-    fn error<E>(self, error: E) -> Result<T>
+    fn with_error<E, F>(self, error: F) -> Result<T>
     where
+        F: FnOnce() -> E,
         E: std::error::Error + Send + Sync + 'static;
 
     /// Add a Note to an error report, to be displayed after the chain of errors.
@@ -309,6 +336,23 @@ where
             let mut e = e.into();
             let section = Section {
                 inner: section::SectionKind::Error(Box::new(error)),
+                order: section::Order::AfterErrMsgs,
+            };
+
+            e.context_mut().sections.push(section);
+            e
+        })
+    }
+
+    fn with_error<E2, F>(self, error: F) -> Result<T>
+    where
+        F: FnOnce() -> E2,
+        E2: std::error::Error + Send + Sync + 'static,
+    {
+        self.map_err(|e| {
+            let mut e = e.into();
+            let section = Section {
+                inner: section::SectionKind::Error(Box::new(error())),
                 order: section::Order::AfterErrMsgs,
             };
 

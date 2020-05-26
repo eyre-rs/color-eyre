@@ -177,6 +177,19 @@
 //! being empty and is skipped in the final report. This gives us a short and concise error report
 //! indicating exactly what was attempted and how it failed.
 //!
+//! ### Aggregating multiple errors into one report
+//!
+//! It's not uncommon for programs like batched task runners or parsers to want to
+//! return an error with multiple sources. The current version of the error trait
+//! does not support this use case very well, though there is [work being
+//! done](https://github.com/rust-lang/rfcs/pull/2895) to improve this.
+//!
+//! For now however one way to work around this is to compose errors outside the
+//! error trait. `color-eyre` supports such composition in its error reports via
+//! the `Help` trait.
+//!
+//! For an example of how to aggregate errors check out [`examples/multiple_errors.rs`].
+//!
 //! ### Custom configuration for `color-backtrace` for setting custom filters and more
 //!
 //! The pretty printing for backtraces and span traces isn't actually provided by `color-eyre`, but
@@ -217,6 +230,7 @@
 //! [`examples/usage.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/usage.rs
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 //! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
+//! [`examples/multiple_errors.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/multiple_errors.rs
 #![doc(html_root_url = "https://docs.rs/color-eyre/0.3.2")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(

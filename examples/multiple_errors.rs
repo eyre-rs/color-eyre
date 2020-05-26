@@ -1,12 +1,3 @@
-//! It's not uncommon for programs like batched task runners or parsers to want to return an error
-//! with multiple sources. The current version of the error trait does not support this usecase
-//! very well, though there is work being done to improve this.
-//!
-//! For now however one way to work around this is to compose errors outside the error trait.
-//! `color-eyre` supports such composition in its error reports via its custom sections feature.
-//!
-//! This example is intended to demonstrate two approaches to error aggregation with color-eyre
-
 use color_eyre::{Help, Report};
 use eyre::eyre;
 use thiserror::Error;
