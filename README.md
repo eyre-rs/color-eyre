@@ -11,8 +11,8 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-url]: https://docs.rs/color-eyre
 
-A custom context for the [`eyre`] crate for colorful error reports with suggestions, custom
-sections, [`tracing-error`] support, and backtraces on stable.
+A report handler for panics and the [`eyre`] crate for colorful, consistent, and well
+formatted error reports.
 
 ## TLDR
 
@@ -154,9 +154,10 @@ error originated from, assuming it can find them on the disk.
 
 ### Custom `Section`s for error reports via [`Help`] trait
 
-The `section` module provides helpers for adding extra sections to error reports. Sections are
-disinct from error messages and are displayed independently from the chain of errors. Take this
-example of adding sections to contain `stderr` and `stdout` from a failed command, taken from
+The `section` module provides helpers for adding extra sections to error
+reports. Sections are disinct from error messages and are displayed
+independently from the chain of errors. Take this example of adding sections
+to contain `stderr` and `stdout` from a failed command, taken from
 [`examples/custom_section.rs`]:
 
 ```rust
@@ -179,16 +180,8 @@ impl Output for Command {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(eyre!("cmd exited with non-zero status code"))
-                .with_section(move || {
-                    "Stdout:"
-                        .skip_if(|| stdout.is_empty())
-                        .body(stdout.trim().to_string())
-                })
-                .with_section(move || {
-                    "Stderr:"
-                        .skip_if(|| stderr.is_empty())
-                        .body(stderr.trim().to_string())
-                })
+                .with_section(move || stdout.trim().to_string().header("Stdout:"))
+                .with_section(move || stderr.trim().to_string().header("Stderr:"))
         } else {
             Ok(stdout.into())
         }
@@ -198,26 +191,25 @@ impl Output for Command {
 
 ---
 
-Here we have an function that, if the command exits unsuccessfully, creates a report indicating
-the failure and attaches two sections, one for `stdout` and one for `stderr`. Each section
-includes a short header and a body that contains the actual output. Additionally these sections
-use `skip_if` to tell the report not to include them if there was no output, preventing empty
-sections from polluting the end report.
+Here we have an function that, if the command exits unsuccessfully, creates a
+report indicating the failure and attaches two sections, one for `stdout` and
+one for `stderr`.
 
-Running `cargo run --example custom_section` shows us how these sections are included in the
-output:
+Running `cargo run --example custom_section` shows us how these sections are
+included in the output:
 
 ![custom section example](https://raw.githubusercontent.com/yaahc/color-eyre/master/pictures/custom_section.png)
 
-Only the `Stderr:` section actually gets included. The `cat` command fails, so stdout ends up
-being empty and is skipped in the final report. This gives us a short and concise error report
-indicating exactly what was attempted and how it failed.
+Only the `Stderr:` section actually gets included. The `cat` command fails,
+so stdout ends up being empty and is skipped in the final report. This gives
+us a short and concise error report indicating exactly what was attempted and
+how it failed.
 
 ### Aggregating multiple errors into one report
 
-It's not uncommon for programs like batched task runners or parsers to want to
-return an error with multiple sources. The current version of the error trait
-does not support this use case very well, though there is [work being
+It's not uncommon for programs like batched task runners or parsers to want
+to return an error with multiple sources. The current version of the error
+trait does not support this use case very well, though there is [work being
 done](https://github.com/rust-lang/rfcs/pull/2895) to improve this.
 
 For now however one way to work around this is to compose errors outside the
@@ -228,20 +220,22 @@ For an example of how to aggregate errors check out [`examples/multiple_errors.r
 
 ### Custom configuration for `color-backtrace` for setting custom filters and more
 
-The pretty printing for backtraces and span traces isn't actually provided by `color-eyre`, but
-instead comes from its dependencies [`color-backtrace`] and [`color-spantrace`].
-`color-backtrace` in particular has many more features than are exported by `color-eyre`, such
-as customized color schemes, panic hooks, and custom frame filters. The custom frame filters
-are particularly useful when combined with `color-eyre`, so to enable their usage we provide
-the `install` fn for setting up a custom `BacktracePrinter` with custom filters installed.
+The pretty printing for backtraces and span traces isn't actually provided by
+`color-eyre`, but instead comes from its dependencies [`color-backtrace`] and
+[`color-spantrace`]. `color-backtrace` in particular has many more features
+than are exported by `color-eyre`, such as customized color schemes, panic
+hooks, and custom frame filters. The custom frame filters are particularly
+useful when combined with `color-eyre`, so to enable their usage we provide
+the `install` fn for setting up a custom `BacktracePrinter` with custom
+filters installed.
 
 For an example of how to setup custom filters, check out [`examples/custom_filter.rs`].
 
 ## Explanation
 
-This crate works by defining a `Context` type which implements [`eyre::EyreContext`]
-and a pair of type aliases for setting this context type as the parameter of
-[`eyre::Report`].
+This crate works by defining a `Context` type which implements
+[`eyre::EyreContext`] and a pair of type aliases for setting this context
+type as the parameter of [`eyre::Report`].
 
 ```rust
 use color_eyre::Context;

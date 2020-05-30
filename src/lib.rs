@@ -166,16 +166,8 @@
 //!         if !output.status.success() {
 //!             let stderr = String::from_utf8_lossy(&output.stderr);
 //!             Err(eyre!("cmd exited with non-zero status code"))
-//!                 .with_section(move || {
-//!                     "Stdout:"
-//!                         .skip_if(|| stdout.is_empty())
-//!                         .body(stdout.trim().to_string())
-//!                 })
-//!                 .with_section(move || {
-//!                     "Stderr:"
-//!                         .skip_if(|| stderr.is_empty())
-//!                         .body(stderr.trim().to_string())
-//!                 })
+//!                 .with_section(move || stdout.trim().to_string().header("Stdout:"))
+//!                 .with_section(move || stderr.trim().to_string().header("Stderr:"))
 //!         } else {
 //!             Ok(stdout.into())
 //!         }
@@ -279,13 +271,14 @@
     unused_parens,
     while_true
 )]
+use crate::writers::HeaderWriter;
 use ansi_term::Color::*;
 use backtrace::Backtrace;
 pub use color_backtrace::BacktracePrinter;
 use eyre::*;
 use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
-use section::Order;
+use section::help::HelpInfo;
 pub use section::{help::Help, Section, SectionExt};
 #[cfg(feature = "capture-spantrace")]
 use std::error::Error;
@@ -298,6 +291,7 @@ use std::{
 use tracing_error::{ExtractSpanTrace, SpanTrace, SpanTraceStatus};
 
 pub mod section;
+mod writers;
 
 static CONFIG: OnceCell<BacktracePrinter> = OnceCell::new();
 
@@ -316,7 +310,7 @@ pub struct Context {
     backtrace: Option<Backtrace>,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
-    sections: Vec<Section>,
+    sections: Vec<HelpInfo>,
 }
 
 #[derive(Debug)]
@@ -463,26 +457,32 @@ impl EyreContext for Context {
 
         let mut buf = String::new();
         for (n, error) in errors {
-            writeln!(f)?;
             buf.clear();
             write!(&mut buf, "{}", error).unwrap();
+            writeln!(f)?;
             write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
         }
 
+        let separated = &mut HeaderWriter {
+            inner: &mut *f,
+            header: &"\n\n",
+            started: false,
+        };
+
         for section in self
             .sections
             .iter()
-            .filter(|s| matches!(s.order, Order::AfterErrMsgs))
+            .filter(|s| matches!(s, HelpInfo::Error(_)))
         {
-            write!(f, "\n\n{:?}", section)?;
+            write!(separated.ready(), "{}", section)?;
         }
 
         for section in self
             .sections
             .iter()
-            .filter(|s| matches!(s.order, Order::BeforeSpanTrace))
+            .filter(|s| matches!(s, HelpInfo::Custom(_)))
         {
-            write!(f, "\n\n{:?}", section)?;
+            write!(separated.ready(), "{}", section)?;
         }
 
         #[cfg(feature = "capture-spantrace")]
@@ -495,31 +495,28 @@ impl EyreContext for Context {
 
             match span_trace.status() {
                 SpanTraceStatus::CAPTURED => {
-                    write!(f, "\n\n")?;
-                    write!(indented(f).with_format(Format::Uniform { indentation: "  " }), "{}", color_spantrace::colorize(span_trace))?
+                    write!(indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }), "{}", color_spantrace::colorize(span_trace))?
                 },
-                SpanTraceStatus::UNSUPPORTED => write!(f, "\n\nWarning: SpanTrace capture is Unsupported.\nEnsure that you've setup an error layer and the versions match")?,
+                SpanTraceStatus::UNSUPPORTED => write!(&mut separated.ready(), "Warning: SpanTrace capture is Unsupported.\nEnsure that you've setup an error layer and the versions match")?,
                 _ => (),
             }
         }
 
         if let Some(backtrace) = self.backtrace.as_ref() {
-            write!(f, "\n\n")?;
-
             let bt_str = CONFIG
                 .get_or_init(default_printer)
                 .format_trace_to_string(&backtrace)
                 .unwrap();
 
             write!(
-                indented(f).with_format(Format::Uniform { indentation: "  " }),
+                indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
                 "{}",
                 bt_str
             )?;
         } else if self
             .sections
             .iter()
-            .any(|s| matches!(s.order, Order::AfterBackTrace))
+            .any(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
         {
             writeln!(f)?;
         }
@@ -527,9 +524,9 @@ impl EyreContext for Context {
         for section in self
             .sections
             .iter()
-            .filter(|s| matches!(s.order, Order::AfterBackTrace))
+            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
         {
-            write!(f, "\n{:?}", section)?;
+            write!(f, "\n{}", section)?;
         }
 
         Ok(())
