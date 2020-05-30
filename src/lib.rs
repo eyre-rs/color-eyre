@@ -72,7 +72,7 @@
 //! and `Backtrace`, minimal, short, and full. Take the following example, taken from
 //! [`examples/usage.rs`]:
 //!
-//! ```rust
+//! ```rust,should_panic
 //! use color_eyre::{Help, Report};
 //! use eyre::WrapErr;
 //! use tracing::{info, instrument};
