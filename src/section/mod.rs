@@ -50,7 +50,7 @@ pub struct Section<H, B> {
     body: B,
 }
 
-/// Extension trait for customizing the content of a `Section`
+/// Extension trait for constructing sections with commonly used formats
 pub trait SectionExt: Sized {
     /// Add a header to a `Section` and indent the body
     ///
