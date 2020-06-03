@@ -11,7 +11,7 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-url]: https://docs.rs/color-eyre
 
-A report handler for panics and the [`eyre`] crate for colorful, consistent, and well
+An error report handler for panics and the [`eyre`] crate for colorful, consistent, and well
 formatted error reports.
 
 ## TLDR
@@ -233,30 +233,30 @@ For an example of how to setup custom filters, check out [`examples/custom_filte
 
 ## Explanation
 
-This crate works by defining a `Context` type which implements
-[`eyre::EyreContext`] and a pair of type aliases for setting this context
+This crate works by defining a `Handler` type which implements
+[`eyre::EyreHandler`] and a pair of type aliases for setting this handler
 type as the parameter of [`eyre::Report`].
 
 ```rust
-use color_eyre::Context;
+use color_eyre::Handler;
 
-pub type Report = eyre::Report<Context>;
+pub type Report = eyre::Report<Handler>;
 pub type Result<T, E = Report> = core::result::Result<T, E>;
 ```
 
-Please refer to the [`Context`] type's docs for more details about its feature set.
+Please refer to the [`Handler`] type's docs for more details about its feature set.
 
 [`eyre`]: https://docs.rs/eyre
 [`tracing-error`]: https://docs.rs/tracing-error
 [`color-backtrace`]: https://docs.rs/color-backtrace
-[`eyre::EyreContext`]: https://docs.rs/eyre/*/eyre/trait.EyreContext.html
+[`eyre::EyreHandler`]: https://docs.rs/eyre/*/eyre/trait.EyreHandler.html
 [`backtrace::Backtrace`]: https://docs.rs/backtrace/*/backtrace/struct.Backtrace.html
 [`tracing_error::SpanTrace`]: https://docs.rs/tracing-error/*/tracing_error/struct.SpanTrace.html
 [`color-spantrace`]: https://github.com/yaahc/color-spantrace
 [`Help`]: https://docs.rs/color-eyre/*/color_eyre/trait.Help.html
 [`eyre::Report`]: https://docs.rs/eyre/*/eyre/struct.Report.html
 [`eyre::Result`]: https://docs.rs/eyre/*/eyre/type.Result.html
-[`Context`]: https://docs.rs/color-eyre/*/color_eyre/struct.Context.html
+[`Handler`]: https://docs.rs/color-eyre/*/color_eyre/struct.Handler.html
 [`examples/usage.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/usage.rs
 [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
