@@ -420,7 +420,7 @@ impl EyreHandler for Handler {
             buf.clear();
             write!(&mut buf, "{}", error).unwrap();
             writeln!(f)?;
-            write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
+            write!(indented(f).ind(n), "{}", Red.make_intense().paint(&buf))?;
         }
 
         let separated = &mut HeaderWriter {
@@ -640,3 +640,35 @@ pub type Report = eyre::Report<Handler>;
 /// }
 /// ```
 pub type Result<T, E = Report> = core::result::Result<T, E>;
+
+// TODO: remove when / if ansi_term merges these changes upstream
+trait ColorExt {
+    fn make_intense(self) -> Self;
+}
+
+impl ColorExt for ansi_term::Color {
+    fn make_intense(self) -> Self {
+        use ansi_term::Color::*;
+
+        match self {
+            Black => Fixed(8),
+            Red => Fixed(9),
+            Green => Fixed(10),
+            Yellow => Fixed(11),
+            Blue => Fixed(12),
+            Purple => Fixed(13),
+            Cyan => Fixed(14),
+            White => Fixed(15),
+            Fixed(color) if color < 8 => Fixed(color + 8),
+            other => other,
+        }
+    }
+}
+impl ColorExt for ansi_term::Style {
+    fn make_intense(mut self) -> Self {
+        if let Some(color) = self.foreground {
+            self.foreground = Some(color.make_intense());
+        }
+        self
+    }
+}
