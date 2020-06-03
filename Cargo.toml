@@ -37,4 +37,3 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [profile.dev.package.backtrace]
 opt-level = 3
-
