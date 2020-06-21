@@ -1,5 +1,4 @@
-use color_eyre::{Help, Report};
-use eyre::WrapErr;
+use color_eyre::{eyre::WrapErr, Help, Report};
 use pretty_assertions::assert_eq;
 use tracing::{info, instrument};
 
@@ -53,7 +52,7 @@ fn read_config() -> Result<(), Report> {
 
 // Define at the bottom to prevent it from changing line numbers
 #[cfg(feature = "capture-spantrace")]
-static EXPECTED: &str = "Error: \n   0: \u{1b}[38;5;9mUnable to read config\u{1b}[0m\n   1: \u{1b}[38;5;9mNo such file or directory (os error 2)\u{1b}[0m\n\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  \n   0: \u{1b}[38;5;9mminimal\u{1b}[0m\u{1b}[38;5;9m::\u{1b}[0m\u{1b}[38;5;9mread_file\u{1b}[0m with \u{1b}[38;5;14mpath=\"fake_file\"\u{1b}[0m\n      at tests/minimal.rs:41\n   1: \u{1b}[38;5;9mminimal\u{1b}[0m\u{1b}[38;5;9m::\u{1b}[0m\u{1b}[38;5;9mread_config\u{1b}[0m\n      at tests/minimal.rs:47\n\n\u{1b}[38;5;14mSuggestion\u{1b}[0m: try using a file that exists next time";
+static EXPECTED: &str = "Error: \n   0: \u{1b}[38;5;9mUnable to read config\u{1b}[0m\n   1: \u{1b}[38;5;9mNo such file or directory (os error 2)\u{1b}[0m\n\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  \n   0: \u{1b}[38;5;9mminimal\u{1b}[0m\u{1b}[38;5;9m::\u{1b}[0m\u{1b}[38;5;9mread_file\u{1b}[0m with \u{1b}[38;5;14mpath=\"fake_file\"\u{1b}[0m\n      at tests/minimal.rs:40\n   1: \u{1b}[38;5;9mminimal\u{1b}[0m\u{1b}[38;5;9m::\u{1b}[0m\u{1b}[38;5;9mread_config\u{1b}[0m\n      at tests/minimal.rs:46\n\n\u{1b}[38;5;14mSuggestion\u{1b}[0m: try using a file that exists next time";
 
 #[cfg(not(feature = "capture-spantrace"))]
 static EXPECTED: &str = "Error: \n   0: \u{1b}[38;5;9mUnable to read config\u{1b}[0m\n   1: \u{1b}[38;5;9mNo such file or directory (os error 2)\u{1b}[0m\n\n\u{1b}[38;5;14mSuggestion\u{1b}[0m: try using a file that exists next time";
