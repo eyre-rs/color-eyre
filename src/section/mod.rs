@@ -17,7 +17,7 @@ pub mod help;
 /// # Examples
 ///
 /// ```rust
-/// use color_eyre::{eyre::eyre, SectionExt, Help, Report};
+/// use color_eyre::{eyre::eyre, SectionExt, Help, eyre::Report};
 /// use std::process::Command;
 /// use tracing::instrument;
 ///
@@ -60,7 +60,7 @@ pub trait SectionExt: Sized {
     /// # Examples
     ///
     /// ```rust
-    /// use color_eyre::{eyre::eyre, Help, SectionExt, Report};
+    /// use color_eyre::{eyre::eyre, Help, SectionExt, eyre::Report};
     ///
     /// let all_in_header = "header\n   body\n   body";
     /// let report = Err::<(), Report>(eyre!("an error occurred"))

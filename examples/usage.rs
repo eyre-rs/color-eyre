@@ -1,10 +1,12 @@
-use color_eyre::{eyre::WrapErr, Help, Report};
+use color_eyre::{eyre::Report, eyre::WrapErr, Help};
 use tracing::{info, instrument};
 
 #[instrument]
 fn main() -> Result<(), Report> {
     #[cfg(feature = "capture-spantrace")]
     install_tracing();
+
+    color_eyre::install()?;
 
     Ok(read_config()?)
 }

@@ -16,19 +16,6 @@
 //! color-eyre = "0.4"
 //! ```
 //!
-//! And then import the type alias from color-eyre for [`eyre::Report`] or [`eyre::Result`].
-//!
-//! ```rust
-//! use color_eyre::Report;
-//!
-//! // or
-//!
-//! fn example() -> color_eyre::Result<()> {
-//!     # Ok(())
-//!     // ...
-//! }
-//! ```
-//!
 //! ### Disabling tracing support
 //!
 //! If you don't plan on using `tracing_error` and `SpanTrace` you can disable the
@@ -100,7 +87,7 @@
 //! [`examples/custom_section.rs`]:
 //!
 //! ```rust
-//! use color_eyre::{eyre::eyre, SectionExt, Help, Report};
+//! use color_eyre::{eyre::eyre, SectionExt, Help, eyre::Report};
 //! use std::process::Command;
 //! use tracing::instrument;
 //!
@@ -169,21 +156,6 @@
 //!
 //! For an example of how to setup custom filters, check out [`examples/custom_filter.rs`].
 //!
-//! ## Explanation
-//!
-//! This crate works by defining a `Handler` type which implements
-//! [`eyre::EyreHandler`] and a pair of type aliases for setting this handler
-//! type as the parameter of [`eyre::Report`].
-//!
-//! ```rust
-//! use color_eyre::Handler;
-//!
-//! pub type Report = eyre::Report<Handler>;
-//! pub type Result<T, E = Report> = core::result::Result<T, E>;
-//! ```
-//!
-//! Please refer to the [`Handler`] type's docs for more details about its feature set.
-//!
 //! [`eyre`]: https://docs.rs/eyre
 //! [`tracing-error`]: https://docs.rs/tracing-error
 //! [`color-backtrace`]: https://docs.rs/color-backtrace
@@ -224,6 +196,7 @@
     unused_parens,
     while_true
 )]
+#![allow(clippy::try_err)]
 use crate::writers::HeaderWriter;
 use ansi_term::Color::*;
 use backtrace::Backtrace;
@@ -275,90 +248,11 @@ struct FormattedSpanTrace<'a>(&'a SpanTrace);
 
 impl Handler {
     /// Return a reference to the captured `Backtrace` type
-    ///
-    /// # Examples
-    ///
-    /// Backtrace capture can be enabled with the `RUST_BACKTRACE` env variable:
-    ///
-    /// ```
-    /// use color_eyre::{eyre::eyre, Report};
-    ///
-    /// std::env::set_var("RUST_BACKTRACE", "1");
-    ///
-    /// let report: Report = eyre!("an error occurred");
-    /// assert!(report.handler().backtrace().is_some());
-    /// ```
-    ///
-    /// Alternatively, if you don't want backtraces to be printed on panic, you can use
-    /// `RUST_LIB_BACKTRACE`:
-    ///
-    /// ```
-    /// use color_eyre::{eyre::eyre, Report};
-    ///
-    /// std::env::set_var("RUST_LIB_BACKTRACE", "1");
-    ///
-    /// let report: Report = eyre!("an error occurred");
-    /// assert!(report.handler().backtrace().is_some());
-    /// ```
-    ///
-    /// And if you don't want backtraces to be captured but you still want panics to print
-    /// backtraces you can explicitly set `RUST_LIB_BACKTRACE` to 0:
-    ///
-    /// ```
-    /// use color_eyre::{eyre::eyre, Report};
-    ///
-    /// std::env::set_var("RUST_BACKTRACE", "1");
-    /// std::env::set_var("RUST_LIB_BACKTRACE", "0");
-    ///
-    /// let report: Report = eyre!("an error occurred");
-    /// assert!(report.handler().backtrace().is_none());
-    /// ```
-    ///
     pub fn backtrace(&self) -> Option<&Backtrace> {
         self.backtrace.as_ref()
     }
 
     /// Return a reference to the captured `SpanTrace` type
-    ///
-    /// # Examples
-    ///
-    /// SpanTraces are always captured by default:
-    ///
-    /// ```
-    /// use color_eyre::{eyre::eyre, Report};
-    ///
-    /// let report: Report = eyre!("an error occurred");
-    /// assert!(report.handler().span_trace().is_some());
-    /// ```
-    ///
-    /// However, `SpanTrace` is not captured if one of the source errors already captured a
-    /// `SpanTrace` via [`tracing_error::TracedError`]:
-    ///
-    /// ```
-    /// use color_eyre::{eyre::eyre, Report};
-    /// use tracing_error::{TracedError, InstrumentError};
-    ///
-    /// #[derive(Debug)]
-    /// struct SourceError;
-    ///
-    /// impl std::fmt::Display for SourceError {
-    ///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    ///         write!(f, "SourceError")
-    ///     }
-    /// }
-    ///
-    /// impl std::error::Error for SourceError {}
-    ///
-    /// let error = SourceError;
-    ///
-    /// // the type annotation here is unnecessary, I've only added it for demonstration purposes
-    /// let error: TracedError<SourceError> = error.in_current_span();
-    ///
-    /// let report: Report = error.into();
-    /// assert!(report.handler().span_trace().is_none());
-    /// ```
-    ///
-    /// [`tracing_error::TracedError`]: https://docs.rs/tracing-error/0.1.2/tracing_error/struct.TracedError.html
     #[cfg(feature = "capture-spantrace")]
     #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
@@ -366,7 +260,7 @@ impl Handler {
     }
 }
 
-impl eyre::EyreHandler for Handler {
+impl Handler {
     #[allow(unused_variables)]
     fn default(error: &(dyn std::error::Error + 'static)) -> Self {
         let backtrace = if backtrace_enabled() {
@@ -389,7 +283,9 @@ impl eyre::EyreHandler for Handler {
             sections: Vec::new(),
         }
     }
+}
 
+impl eyre::EyreHandler for Handler {
     fn debug(
         &self,
         error: &(dyn std::error::Error + 'static),
@@ -534,40 +430,41 @@ fn get_deepest_spantrace<'a>(error: &'a (dyn Error + 'static)) -> Option<&'a Spa
 
 /// Override the global BacktracePrinter used by `color_eyre::Handler` when printing captured
 /// backtraces.
-///
-/// # Examples
-///
-/// This enables configuration like custom frame filters:
-///
-/// ```rust
-/// use color_eyre::BacktracePrinter;
-///
-/// let printer = BacktracePrinter::new()
-///     .add_frame_filter(Box::new(|frames| {
-///         let filters = &[
-///             "evil_function",
-///         ];
-///
-///         frames.retain(|frame| {
-///             !filters.iter().any(|f| {
-///                 let name = if let Some(name) = frame.name.as_ref() {
-///                     name.as_str()
-///                 } else {
-///                     return true;
-///                 };
-///
-///                 name.starts_with(f)
-///             })
-///         });
-///     }));
-///
-/// color_eyre::install(printer).unwrap();
-/// ```
-pub fn install(printer: BacktracePrinter) -> Result<(), impl std::error::Error> {
-    let printer = add_eyre_filters(printer);
+//
+// # Examples
+//
+// This enables configuration like custom frame filters:
+//
+// ```rust
+// use color_eyre::BacktracePrinter;
+//
+// let printer = BacktracePrinter::new()
+//     .add_frame_filter(Box::new(|frames| {
+//         let filters = &[
+//             "evil_function",
+//         ];
+//
+//         frames.retain(|frame| {
+//             !filters.iter().any(|f| {
+//                 let name = if let Some(name) = frame.name.as_ref() {
+//                     name.as_str()
+//                 } else {
+//                     return true;
+//                 };
+//
+//                 name.starts_with(f)
+//             })
+//         });
+//     }));
+//
+// color_eyre::install(printer).unwrap();
+// ```
+pub fn install() -> Result<(), crate::eyre::Report> {
+    let printer = default_printer();
+    crate::eyre::set_hook(Box::new(|e| Box::new(Handler::default(e))))?;
 
     if CONFIG.set(printer).is_err() {
-        return Err(InstallError);
+        Err(InstallError)?
     }
 
     Ok(())
@@ -602,36 +499,6 @@ fn add_eyre_filters(printer: BacktracePrinter) -> BacktracePrinter {
         });
     }))
 }
-
-/// A type alias for `eyre::Report<color_eyre::Handler>`
-///
-/// # Example
-///
-/// ```rust
-/// use color_eyre::Report;
-///
-/// # struct Config;
-/// fn try_thing(path: &str) -> Result<Config, Report> {
-///     // ...
-/// # Ok(Config)
-/// }
-/// ```
-pub type Report = eyre::Report<Handler>;
-
-/// A type alias for `Result<T, color_eyre::Report>`
-///
-/// # Example
-///
-///```
-/// #[tracing::instrument]
-/// fn main() -> color_eyre::Result<()> {
-///
-///     // ...
-///
-///     Ok(())
-/// }
-/// ```
-pub type Result<T, E = Report> = core::result::Result<T, E>;
 
 // TODO: remove when / if ansi_term merges these changes upstream
 trait ColorExt {

@@ -1,6 +1,6 @@
 //! Provides an extension trait for attaching `Section` to error reports.
+use crate::eyre::{Report, Result};
 use crate::ColorExt;
-use crate::{Report, Result};
 use ansi_term::Color::*;
 use indenter::indented;
 use std::fmt::Write;
@@ -30,7 +30,7 @@ pub trait Help<T>: private::Sealed {
     /// # Examples
     ///
     /// ```rust,should_panic
-    /// use color_eyre::{eyre::eyre, Report, Help};
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
     ///
     /// Err(eyre!("command failed"))
     ///     .section("Please report bugs to https://real.url/bugs")?;
@@ -46,7 +46,7 @@ pub trait Help<T>: private::Sealed {
     /// # Examples
     ///
     /// ```rust
-    /// use color_eyre::{eyre::eyre, Report, Help, SectionExt};
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help, SectionExt};
     ///
     /// let output = std::process::Command::new("ls")
     ///     .output()?;
@@ -73,7 +73,7 @@ pub trait Help<T>: private::Sealed {
     /// # Examples
     ///
     /// ```rust,should_panic
-    /// use color_eyre::{eyre::eyre, Report, Help};
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
     /// use thiserror::Error;
     ///
     /// #[derive(Debug, Error)]
@@ -95,7 +95,7 @@ pub trait Help<T>: private::Sealed {
     /// # Examples
     ///
     /// ```rust,should_panic
-    /// use color_eyre::{eyre::eyre, Report, Help};
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
     /// use thiserror::Error;
     ///
     /// #[derive(Debug, Error)]
@@ -118,7 +118,7 @@ pub trait Help<T>: private::Sealed {
     ///
     /// ```rust
     /// # use std::{error::Error, fmt::{self, Display}};
-    /// # use color_eyre::Result;
+    /// # use color_eyre::eyre::Result;
     /// # #[derive(Debug)]
     /// # struct FakeErr;
     /// # impl Display for FakeErr {
@@ -148,7 +148,7 @@ pub trait Help<T>: private::Sealed {
     ///
     /// ```rust
     /// # use std::{error::Error, fmt::{self, Display}};
-    /// # use color_eyre::Result;
+    /// # use color_eyre::eyre::Result;
     /// # #[derive(Debug)]
     /// # struct FakeErr;
     /// # impl Display for FakeErr {
@@ -209,9 +209,11 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Note(Box::new(note)));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler.sections.push(HelpInfo::Note(Box::new(note)));
+            }
+
             e
         })
     }
@@ -223,9 +225,11 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Note(Box::new(note())));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler.sections.push(HelpInfo::Note(Box::new(note())));
+            }
+
             e
         })
     }
@@ -236,9 +240,11 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Warning(Box::new(warning)));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler.sections.push(HelpInfo::Warning(Box::new(warning)));
+            }
+
             e
         })
     }
@@ -250,9 +256,13 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Warning(Box::new(warning())));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler
+                    .sections
+                    .push(HelpInfo::Warning(Box::new(warning())));
+            }
+
             e
         })
     }
@@ -263,9 +273,13 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Suggestion(Box::new(suggestion)));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler
+                    .sections
+                    .push(HelpInfo::Suggestion(Box::new(suggestion)));
+            }
+
             e
         })
     }
@@ -277,9 +291,13 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            e.handler_mut()
-                .sections
-                .push(HelpInfo::Suggestion(Box::new(suggestion())));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                handler
+                    .sections
+                    .push(HelpInfo::Suggestion(Box::new(suggestion())));
+            }
+
             e
         })
     }
@@ -291,8 +309,12 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            let section = Box::new(section());
-            e.handler_mut().sections.push(HelpInfo::Custom(section));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                let section = Box::new(section());
+                handler.sections.push(HelpInfo::Custom(section));
+            }
+
             e
         })
     }
@@ -303,8 +325,12 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            let section = Box::new(section);
-            e.handler_mut().sections.push(HelpInfo::Custom(section));
+
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                let section = Box::new(section);
+                handler.sections.push(HelpInfo::Custom(section));
+            }
+
             e
         })
     }
@@ -315,9 +341,12 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            let error = error.into();
 
-            e.handler_mut().sections.push(HelpInfo::Error(error));
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                let error = error.into();
+                handler.sections.push(HelpInfo::Error(error));
+            }
+
             e
         })
     }
@@ -329,9 +358,12 @@ where
     {
         self.map_err(|e| {
             let mut e = e.into();
-            let error = error().into();
 
-            e.handler_mut().sections.push(HelpInfo::Error(error));
+            if let Some(handler) = e.handler_mut().downcast_mut::<crate::Handler>() {
+                let error = error().into();
+                handler.sections.push(HelpInfo::Error(error));
+            }
+
             e
         })
     }
@@ -372,7 +404,7 @@ impl Display for HelpInfo {
                     writeln!(f)?;
                     buf.clear();
                     write!(&mut buf, "{}", error).unwrap();
-                    write!(indented(f).ind(n), "{}", Red.paint(&buf))?;
+                    write!(indented(f).ind(n), "{}", Red.make_intense().paint(&buf))?;
                 }
 
                 Ok(())
@@ -406,7 +438,7 @@ impl fmt::Debug for HelpInfo {
 }
 
 pub(crate) mod private {
-    use crate::Report;
+    use crate::eyre::Report;
     pub trait Sealed {}
 
     impl<T, E> Sealed for std::result::Result<T, E> where E: Into<Report> {}
