@@ -174,7 +174,6 @@
 #![doc(html_root_url = "https://docs.rs/color-eyre/0.4.1")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
-    missing_debug_implementations,
     missing_docs,
     missing_doc_code_examples,
     rust_2018_idioms,
@@ -200,17 +199,17 @@
 use crate::writers::HeaderWriter;
 use ansi_term::Color::*;
 use backtrace::Backtrace;
-pub use color_backtrace::BacktracePrinter;
+pub use color_backtrace::FilterCallback;
 pub use eyre;
 use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
 use section::help::HelpInfo;
-pub use section::{help::Help, Section, SectionExt};
+pub use section::{Section, SectionExt};
 #[cfg(feature = "capture-spantrace")]
 use std::error::Error;
 use std::{
     env,
-    fmt::{self, Write as _},
+    fmt::{self, Display, Write as _},
     sync::atomic::{AtomicUsize, Ordering::SeqCst},
 };
 #[cfg(feature = "capture-spantrace")]
@@ -218,10 +217,14 @@ use tracing_error::{ExtractSpanTrace, SpanTrace, SpanTraceStatus};
 #[doc(hidden)]
 pub use Handler as Context;
 
+pub(crate) mod private {
+    use crate::eyre::Report;
+    pub trait Sealed {}
+
+    impl<T, E> Sealed for std::result::Result<T, E> where E: Into<Report> {}
+}
 pub mod section;
 mod writers;
-
-static CONFIG: OnceCell<BacktracePrinter> = OnceCell::new();
 
 /// A custom handler type for [`eyre::Report`] which provides colorful error
 /// reports and [`tracing-error`] support.
@@ -240,11 +243,6 @@ pub struct Handler {
     span_trace: Option<SpanTrace>,
     sections: Vec<HelpInfo>,
 }
-
-#[derive(Debug)]
-struct InstallError;
-#[cfg(feature = "capture-spantrace")]
-struct FormattedSpanTrace<'a>(&'a SpanTrace);
 
 impl Handler {
     /// Return a reference to the captured `Backtrace` type
@@ -374,6 +372,20 @@ impl eyre::EyreHandler for Handler {
     }
 }
 
+#[derive(Debug)]
+struct InstallError;
+
+impl fmt::Display for InstallError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("could not install the BacktracePrinter as another was already installed")
+    }
+}
+
+impl std::error::Error for InstallError {}
+
+#[cfg(feature = "capture-spantrace")]
+struct FormattedSpanTrace<'a>(&'a SpanTrace);
+
 #[cfg(feature = "capture-spantrace")]
 impl fmt::Display for FormattedSpanTrace<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -391,13 +403,318 @@ impl fmt::Display for FormattedSpanTrace<'_> {
     }
 }
 
-impl fmt::Display for InstallError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("could not install the BacktracePrinter as another was already installed")
+/// Builder for customizing the behavior of the global panic and error report hooks
+///
+/// # Examples
+///
+/// This enables configuration like custom frame filters:
+///
+/// ```rust
+/// color_eyre::HookBuilder::default()
+///     .add_frame_filter(Box::new(|frames| {
+///         let filters = &[
+///             "evil_function",
+///         ];
+///
+///         frames.retain(|frame| {
+///             !filters.iter().any(|f| {
+///                 let name = if let Some(name) = frame.name.as_ref() {
+///                     name.as_str()
+///                 } else {
+///                     return true;
+///                 };
+///
+///                 name.starts_with(f)
+///             })
+///         });
+///     }))
+///     .install()
+///     .unwrap();
+/// ```
+#[derive(Default)]
+pub struct HookBuilder {
+    filters: Vec<Box<FilterCallback>>,
+}
+
+impl HookBuilder {
+    /// Add a custom filter to the set of frame filters
+    pub fn add_frame_filter(mut self, filter: Box<FilterCallback>) -> Self {
+        self.filters.push(filter);
+        self
+    }
+
+    /// Install the given Hook as the global error report hook
+    pub fn install(self) -> Result<(), crate::eyre::Report> {
+        let printer = self.into_printer();
+        crate::eyre::set_hook(Box::new(|e| Box::new(Handler::default(e))))?;
+
+        if CONFIG.set(printer).is_err() {
+            Err(InstallError)?
+        }
+
+        Ok(())
+    }
+
+    /// Add the default set of filters to this `HookBuilder`'s configuration
+    pub fn add_eyre_filters(self) -> Self {
+        self.add_frame_filter(Box::new(|frames| {
+            let filters = &[
+                "<color_eyre::Handler as eyre::EyreHandler>::default",
+                "eyre::",
+                "color_eyre::",
+            ];
+
+            frames.retain(|frame| {
+                !filters.iter().any(|f| {
+                    let name = if let Some(name) = frame.name.as_ref() {
+                        name.as_str()
+                    } else {
+                        return true;
+                    };
+
+                    name.starts_with(f)
+                })
+            });
+        }))
+    }
+
+    fn into_printer(self) -> color_backtrace::BacktracePrinter {
+        let mut printer = color_backtrace::BacktracePrinter::default();
+        for filter in self.filters {
+            printer = printer.add_frame_filter(filter);
+        }
+        printer
     }
 }
 
-impl std::error::Error for InstallError {}
+static CONFIG: OnceCell<color_backtrace::BacktracePrinter> = OnceCell::new();
+
+/// A helper trait for attaching informational sections to error reports to be
+/// displayed after the chain of errors
+///
+/// `color_eyre` provides two types of help text that can be attached to error reports: custom
+/// sections and pre-configured sections. Custom sections are added via the `section` and
+/// `with_section` methods, and give maximum control over formatting. For more details check out
+/// the docs for [`Section`].
+///
+/// The pre-configured sections are provided via `suggestion`, `warning`, and `note`. These
+/// sections are displayed after all other sections with no extra newlines between subsequent Help
+/// sections. They consist only of a header portion and are prepended with a colored string
+/// indicating the kind of section, e.g. `Note: This might have failed due to ..."
+///
+/// [`Section`]: struct.Section.html
+pub trait Help<T>: private::Sealed {
+    /// Add a section to an error report, to be displayed after the chain of errors.
+    ///
+    /// Sections are displayed in the order they are added to the error report. They are displayed
+    /// immediately after the `Error:` section and before the `SpanTrace` and `Backtrace` sections.
+    /// They consist of a header and an optional body. The body of the section is indented by
+    /// default.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .section("Please report bugs to https://real.url/bugs")?;
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn section<D>(self, section: D) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static;
+
+    /// Add a Section to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Section is lazily evaluated only in the case of an error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help, SectionExt};
+    ///
+    /// let output = std::process::Command::new("ls")
+    ///     .output()?;
+    ///
+    /// let output = if !output.status.success() {
+    ///     let stderr = String::from_utf8_lossy(&output.stderr);
+    ///     Err(eyre!("cmd exited with non-zero status code"))
+    ///         .with_section(move || stderr.trim().to_string().header("Stderr:"))?
+    /// } else {
+    ///     String::from_utf8_lossy(&output.stdout)
+    /// };
+    ///
+    /// println!("{}", output);
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn with_section<D, F>(self, section: F) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static,
+        F: FnOnce() -> D;
+
+    /// Add an error section to an error report, to be displayed after the primary error message
+    /// section.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
+    /// use thiserror::Error;
+    ///
+    /// #[derive(Debug, Error)]
+    /// #[error("{0}")]
+    /// struct StrError(&'static str);
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .error(StrError("got one error"))
+    ///     .error(StrError("got a second error"))?;
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn error<E>(self, error: E) -> eyre::Result<T>
+    where
+        E: std::error::Error + Send + Sync + 'static;
+
+    /// Add an error section to an error report, to be displayed after the primary error message
+    /// section. The closure to create the Section is lazily evaluated only in the case of an error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,should_panic
+    /// use color_eyre::{eyre::eyre, eyre::Report, Help};
+    /// use thiserror::Error;
+    ///
+    /// #[derive(Debug, Error)]
+    /// #[error("{0}")]
+    /// struct StringError(String);
+    ///
+    /// Err(eyre!("command failed"))
+    ///     .with_error(|| StringError("got one error".into()))
+    ///     .with_error(|| StringError("got a second error".into()))?;
+    /// # Ok::<_, Report>(())
+    /// ```
+    fn with_error<E, F>(self, error: F) -> eyre::Result<T>
+    where
+        F: FnOnce() -> E,
+        E: std::error::Error + Send + Sync + 'static;
+
+    /// Add a Note to an error report, to be displayed after the chain of errors.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use std::{error::Error, fmt::{self, Display}};
+    /// # use color_eyre::eyre::Result;
+    /// # #[derive(Debug)]
+    /// # struct FakeErr;
+    /// # impl Display for FakeErr {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         write!(f, "FakeErr")
+    /// #     }
+    /// # }
+    /// # impl std::error::Error for FakeErr {}
+    /// # fn main() -> Result<()> {
+    /// # fn fallible_fn() -> Result<(), FakeErr> {
+    /// #       Ok(())
+    /// # }
+    /// use color_eyre::Help as _;
+    ///
+    /// fallible_fn().note("This might have failed due to ...")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn note<D>(self, note: D) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static;
+
+    /// Add a Note to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Note is lazily evaluated only in the case of an error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use std::{error::Error, fmt::{self, Display}};
+    /// # use color_eyre::eyre::Result;
+    /// # #[derive(Debug)]
+    /// # struct FakeErr;
+    /// # impl Display for FakeErr {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         write!(f, "FakeErr")
+    /// #     }
+    /// # }
+    /// # impl std::error::Error for FakeErr {}
+    /// # fn main() -> Result<()> {
+    /// # fn fallible_fn() -> Result<(), FakeErr> {
+    /// #       Ok(())
+    /// # }
+    /// use color_eyre::Help as _;
+    ///
+    /// fallible_fn().with_note(|| {
+    ///         format!("This might have failed due to ... It has failed {} times", 100)
+    ///     })?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn with_note<D, F>(self, f: F) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static,
+        F: FnOnce() -> D;
+
+    /// Add a Warning to an error report, to be displayed after the chain of errors.
+    fn warning<D>(self, warning: D) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static;
+
+    /// Add a Warning to an error report, to be displayed after the chain of errors. The closure to
+    /// create the Warning is lazily evaluated only in the case of an error.
+    fn with_warning<D, F>(self, f: F) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static,
+        F: FnOnce() -> D;
+
+    /// Add a Suggestion to an error report, to be displayed after the chain of errors.
+    fn suggestion<D>(self, suggestion: D) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static;
+
+    /// Add a Suggestion to an error report, to be displayed after the chain of errors. The closure
+    /// to create the Suggestion is lazily evaluated only in the case of an error.
+    fn with_suggestion<D, F>(self, f: F) -> eyre::Result<T>
+    where
+        D: Display + Send + Sync + 'static,
+        F: FnOnce() -> D;
+}
+
+// TODO: remove when / if ansi_term merges these changes upstream
+trait ColorExt {
+    fn make_intense(self) -> Self;
+}
+
+impl ColorExt for ansi_term::Color {
+    fn make_intense(self) -> Self {
+        use ansi_term::Color::*;
+
+        match self {
+            Black => Fixed(8),
+            Red => Fixed(9),
+            Green => Fixed(10),
+            Yellow => Fixed(11),
+            Blue => Fixed(12),
+            Purple => Fixed(13),
+            Cyan => Fixed(14),
+            White => Fixed(15),
+            Fixed(color) if color < 8 => Fixed(color + 8),
+            other => other,
+        }
+    }
+}
+
+impl ColorExt for ansi_term::Style {
+    fn make_intense(mut self) -> Self {
+        if let Some(color) = self.foreground {
+            self.foreground = Some(color.make_intense());
+        }
+        self
+    }
+}
 
 fn backtrace_enabled() -> bool {
     // Cache the result of reading the environment variables to make
@@ -430,104 +747,14 @@ fn get_deepest_spantrace<'a>(error: &'a (dyn Error + 'static)) -> Option<&'a Spa
 
 /// Override the global BacktracePrinter used by `color_eyre::Handler` when printing captured
 /// backtraces.
-//
-// # Examples
-//
-// This enables configuration like custom frame filters:
-//
-// ```rust
-// use color_eyre::BacktracePrinter;
-//
-// let printer = BacktracePrinter::new()
-//     .add_frame_filter(Box::new(|frames| {
-//         let filters = &[
-//             "evil_function",
-//         ];
-//
-//         frames.retain(|frame| {
-//             !filters.iter().any(|f| {
-//                 let name = if let Some(name) = frame.name.as_ref() {
-//                     name.as_str()
-//                 } else {
-//                     return true;
-//                 };
-//
-//                 name.starts_with(f)
-//             })
-//         });
-//     }));
-//
-// color_eyre::install(printer).unwrap();
-// ```
 pub fn install() -> Result<(), crate::eyre::Report> {
-    let printer = default_printer();
-    crate::eyre::set_hook(Box::new(|e| Box::new(Handler::default(e))))?;
-
-    if CONFIG.set(printer).is_err() {
-        Err(InstallError)?
-    }
-
-    Ok(())
+    HookBuilder::default().add_eyre_filters().install()
 }
 
 fn installed_printer() -> &'static color_backtrace::BacktracePrinter {
     CONFIG.get_or_init(default_printer)
 }
 
-fn default_printer() -> BacktracePrinter {
-    add_eyre_filters(BacktracePrinter::new())
-}
-
-fn add_eyre_filters(printer: BacktracePrinter) -> BacktracePrinter {
-    printer.add_frame_filter(Box::new(|frames| {
-        let filters = &[
-            "<color_eyre::Handler as eyre::EyreHandler>::default",
-            "eyre::",
-            "color_eyre::",
-        ];
-
-        frames.retain(|frame| {
-            !filters.iter().any(|f| {
-                let name = if let Some(name) = frame.name.as_ref() {
-                    name.as_str()
-                } else {
-                    return true;
-                };
-
-                name.starts_with(f)
-            })
-        });
-    }))
-}
-
-// TODO: remove when / if ansi_term merges these changes upstream
-trait ColorExt {
-    fn make_intense(self) -> Self;
-}
-
-impl ColorExt for ansi_term::Color {
-    fn make_intense(self) -> Self {
-        use ansi_term::Color::*;
-
-        match self {
-            Black => Fixed(8),
-            Red => Fixed(9),
-            Green => Fixed(10),
-            Yellow => Fixed(11),
-            Blue => Fixed(12),
-            Purple => Fixed(13),
-            Cyan => Fixed(14),
-            White => Fixed(15),
-            Fixed(color) if color < 8 => Fixed(color + 8),
-            other => other,
-        }
-    }
-}
-impl ColorExt for ansi_term::Style {
-    fn make_intense(mut self) -> Self {
-        if let Some(color) = self.foreground {
-            self.foreground = Some(color.make_intense());
-        }
-        self
-    }
+fn default_printer() -> color_backtrace::BacktracePrinter {
+    HookBuilder::default().add_eyre_filters().into_printer()
 }

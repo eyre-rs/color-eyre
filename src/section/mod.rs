@@ -1,7 +1,7 @@
 //! Helpers for adding custom sections to error reports
 use std::fmt::{self, Display, Write};
 
-pub mod help;
+pub(crate) mod help;
 
 /// An indenteted section with a header for an error report
 ///
