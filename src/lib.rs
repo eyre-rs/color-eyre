@@ -293,8 +293,7 @@ impl Handler {
     /// `RUST_LIB_BACKTRACE`:
     ///
     /// ```
-    /// use color_eyre::Report;
-    /// use eyre::eyre;
+    /// use color_eyre::{eyre::eyre, Report};
     ///
     /// std::env::set_var("RUST_LIB_BACKTRACE", "1");
     ///
@@ -306,8 +305,7 @@ impl Handler {
     /// backtraces you can explicitly set `RUST_LIB_BACKTRACE` to 0:
     ///
     /// ```
-    /// use color_eyre::Report;
-    /// use eyre::eyre;
+    /// use color_eyre::{eyre::eyre, Report};
     ///
     /// std::env::set_var("RUST_BACKTRACE", "1");
     /// std::env::set_var("RUST_LIB_BACKTRACE", "0");
@@ -327,8 +325,7 @@ impl Handler {
     /// SpanTraces are always captured by default:
     ///
     /// ```
-    /// use color_eyre::Report;
-    /// use eyre::eyre;
+    /// use color_eyre::{eyre::eyre, Report};
     ///
     /// let report: Report = eyre!("an error occurred");
     /// assert!(report.handler().span_trace().is_some());
@@ -338,8 +335,7 @@ impl Handler {
     /// `SpanTrace` via [`tracing_error::TracedError`]:
     ///
     /// ```
-    /// use color_eyre::Report;
-    /// use eyre::eyre;
+    /// use color_eyre::{eyre::eyre, Report};
     /// use tracing_error::{TracedError, InstrumentError};
     ///
     /// #[derive(Debug)]
