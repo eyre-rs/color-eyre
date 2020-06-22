@@ -209,7 +209,6 @@ pub use Handler as Context;
 
 pub mod config;
 mod handler;
-mod panic;
 pub(crate) mod private;
 pub mod section;
 mod writers;
