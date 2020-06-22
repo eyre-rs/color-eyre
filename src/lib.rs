@@ -207,7 +207,7 @@ use tracing_error::SpanTrace;
 #[doc(hidden)]
 pub use Handler as Context;
 
-mod config;
+pub mod config;
 mod handler;
 mod panic;
 pub(crate) mod private;
@@ -230,12 +230,6 @@ pub struct Handler {
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
     sections: Vec<HelpInfo>,
-}
-
-/// Builder for customizing the behavior of the global panic and error report hooks
-#[derive(Default)]
-pub struct HookBuilder {
-    filters: Vec<Box<config::FilterCallback>>,
 }
 
 static CONFIG: OnceCell<config::Printer> = OnceCell::new();
@@ -441,5 +435,7 @@ trait ColorExt {
 
 /// Install the default panic and error report hooks
 pub fn install() -> Result<(), crate::eyre::Report> {
-    HookBuilder::default().add_default_filters().install()
+    config::HookBuilder::default()
+        .add_default_filters()
+        .install()
 }

@@ -1,5 +1,6 @@
+//! Configuration options for customizing the behavior of the provided panic
+//and error reporting hooks
 use crate::ColorExt;
-use crate::HookBuilder;
 use ansi_term::Color::*;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
@@ -16,11 +17,16 @@ impl fmt::Display for InstallError {
 
 impl std::error::Error for InstallError {}
 
+/// A representation of a Frame from a Backtrace or a SpanTrace
 #[derive(Debug)]
 pub struct Frame {
+    /// Frame index
     pub n: usize,
+    /// frame symbol name
     pub name: Option<String>,
+    /// source line number
     pub lineno: Option<u32>,
+    /// source file path
     pub filename: Option<PathBuf>,
     _private_ctor: (),
 }
@@ -60,7 +66,12 @@ impl fmt::Display for Frame {
             let lineno = self
                 .lineno
                 .map_or("<unknown line>".to_owned(), |x| x.to_string());
-            writeln!(f, "    at {}:{}", filestr, lineno)?;
+            writeln!(
+                f,
+                "    at {}:{}",
+                Purple.paint(filestr),
+                Purple.paint(lineno)
+            )?;
         } else {
             writeln!(f, "    at <unknown source file>")?;
         }
@@ -215,13 +226,19 @@ impl Frame {
     }
 }
 
+/// Builder for customizing the behavior of the global panic and error report hooks
+#[derive(Default)]
+pub struct HookBuilder {
+    filters: Vec<Box<FilterCallback>>,
+}
+
 impl HookBuilder {
     /// Add a custom filter to the set of frame filters
     ///
     /// # Examples
     ///
     /// ```rust
-    /// color_eyre::HookBuilder::default()
+    /// color_eyre::config::HookBuilder::default()
     ///     .add_frame_filter(Box::new(|frames| {
     ///         let filters = &[
     ///             "evil_function",
@@ -326,7 +343,7 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
 
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
-    writeln!(out, "panic")?;
+    writeln!(out, "{}", Red.paint("The application panicked (crashed)."))?;
 
     // Print panic message.
     let payload = pi
@@ -337,14 +354,14 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
         .unwrap_or("<non string panic payload>");
 
     write!(out, "Message:  ")?;
-    writeln!(out, "{}", payload)?;
+    writeln!(out, "{}", Cyan.paint(payload))?;
 
     // If known, print panic location.
     write!(out, "Location: ")?;
     if let Some(loc) = pi.location() {
-        write!(out, "{}", loc.file())?;
+        write!(out, "{}", Purple.paint(loc.file()))?;
         write!(out, ":")?;
-        writeln!(out, "{}", loc.line())?;
+        writeln!(out, "{}", Purple.paint(loc.line().to_string()))?;
     } else {
         writeln!(out, "<unknown>")?;
     }
@@ -354,16 +371,19 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
     // Print some info on how to increase verbosity.
     if v == Verbosity::Minimal {
         write!(out, "\nBacktrace omitted.\n\nRun with ")?;
+        // out.set_color(&self.colors.env_var)?;
         write!(out, "RUST_BACKTRACE=1")?;
         writeln!(out, " environment variable to display it.")?;
     } else {
         // This text only makes sense if frames are displayed.
         write!(out, "\nRun with ")?;
+        // out.set_color(&self.colors.env_var)?;
         write!(out, "COLORBT_SHOW_HIDDEN=1")?;
         writeln!(out, " environment variable to disable frame filtering.")?;
     }
     if v <= Verbosity::Medium {
         write!(out, "Run with ")?;
+        // out.set_color(&self.colors.env_var)?;
         write!(out, "RUST_BACKTRACE=full")?;
         writeln!(out, " to include source snippets.")?;
     }
@@ -537,4 +557,5 @@ fn lib_verbosity() -> Verbosity {
     }
 }
 
-pub(crate) type FilterCallback = dyn Fn(&mut Vec<&Frame>) + Send + Sync + 'static;
+/// Callback for filtering a vector of `Frame`s
+pub type FilterCallback = dyn Fn(&mut Vec<&Frame>) + Send + Sync + 'static;

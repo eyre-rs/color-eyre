@@ -7,7 +7,7 @@ fn main() -> Result<(), Report> {
     #[cfg(feature = "capture-spantrace")]
     install_tracing();
 
-    color_eyre::HookBuilder::default()
+    color_eyre::config::HookBuilder::default()
         .add_default_filters()
         .add_frame_filter(Box::new(|frames| {
             let filters = &["custom_filter::main"];

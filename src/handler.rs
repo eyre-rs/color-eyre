@@ -5,6 +5,7 @@ use ansi_term::Color::*;
 use backtrace::Backtrace;
 use indenter::{indented, Format};
 use std::fmt::Write;
+#[cfg(feature = "capture-spantrace")]
 use tracing_error::{ExtractSpanTrace, SpanTrace};
 
 impl Handler {
