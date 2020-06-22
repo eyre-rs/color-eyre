@@ -13,7 +13,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! color-eyre = "0.4"
+//! color-eyre = "0.5"
 //! ```
 //!
 //! ### Disabling tracing support
@@ -23,7 +23,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! color-eyre = { version = "0.4", default-features = false }
+//! color-eyre = { version = "0.5", default-features = false }
 //! ```
 //!
 //! ### Improving perf on debug builds
@@ -171,7 +171,7 @@
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 //! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
 //! [`examples/multiple_errors.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/multiple_errors.rs
-#![doc(html_root_url = "https://docs.rs/color-eyre/0.4.1")]
+#![doc(html_root_url = "https://docs.rs/color-eyre/0.5.0")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
     missing_docs,
@@ -196,33 +196,21 @@
     while_true
 )]
 #![allow(clippy::try_err)]
-use crate::writers::HeaderWriter;
-use ansi_term::Color::*;
 use backtrace::Backtrace;
-pub use color_backtrace::FilterCallback;
 pub use eyre;
-use indenter::{indented, Format};
 use once_cell::sync::OnceCell;
 use section::help::HelpInfo;
 pub use section::{Section, SectionExt};
+use std::fmt::Display;
 #[cfg(feature = "capture-spantrace")]
-use std::error::Error;
-use std::{
-    env,
-    fmt::{self, Display, Write as _},
-    sync::atomic::{AtomicUsize, Ordering::SeqCst},
-};
-#[cfg(feature = "capture-spantrace")]
-use tracing_error::{ExtractSpanTrace, SpanTrace, SpanTraceStatus};
+use tracing_error::SpanTrace;
 #[doc(hidden)]
 pub use Handler as Context;
 
-pub(crate) mod private {
-    use crate::eyre::Report;
-    pub trait Sealed {}
-
-    impl<T, E> Sealed for std::result::Result<T, E> where E: Into<Report> {}
-}
+mod config;
+mod handler;
+mod panic;
+pub(crate) mod private;
 pub mod section;
 mod writers;
 
@@ -244,250 +232,13 @@ pub struct Handler {
     sections: Vec<HelpInfo>,
 }
 
-impl Handler {
-    /// Return a reference to the captured `Backtrace` type
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        self.backtrace.as_ref()
-    }
-
-    /// Return a reference to the captured `SpanTrace` type
-    #[cfg(feature = "capture-spantrace")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
-    pub fn span_trace(&self) -> Option<&SpanTrace> {
-        self.span_trace.as_ref()
-    }
-}
-
-impl Handler {
-    #[allow(unused_variables)]
-    fn default(error: &(dyn std::error::Error + 'static)) -> Self {
-        let backtrace = if backtrace_enabled() {
-            Some(Backtrace::new())
-        } else {
-            None
-        };
-
-        #[cfg(feature = "capture-spantrace")]
-        let span_trace = if get_deepest_spantrace(error).is_none() {
-            Some(SpanTrace::capture())
-        } else {
-            None
-        };
-
-        Self {
-            backtrace,
-            #[cfg(feature = "capture-spantrace")]
-            span_trace,
-            sections: Vec::new(),
-        }
-    }
-}
-
-impl eyre::EyreHandler for Handler {
-    fn debug(
-        &self,
-        error: &(dyn std::error::Error + 'static),
-        f: &mut core::fmt::Formatter<'_>,
-    ) -> core::fmt::Result {
-        if f.alternate() {
-            return core::fmt::Debug::fmt(error, f);
-        }
-
-        #[cfg(feature = "capture-spantrace")]
-        let errors = eyre::Chain::new(error)
-            .filter(|e| e.span_trace().is_none())
-            .enumerate();
-
-        #[cfg(not(feature = "capture-spantrace"))]
-        let errors = eyre::Chain::new(error).enumerate();
-
-        let mut buf = String::new();
-        for (n, error) in errors {
-            buf.clear();
-            write!(&mut buf, "{}", error).unwrap();
-            writeln!(f)?;
-            write!(indented(f).ind(n), "{}", Red.make_intense().paint(&buf))?;
-        }
-
-        let separated = &mut HeaderWriter {
-            inner: &mut *f,
-            header: &"\n\n",
-            started: false,
-        };
-
-        for section in self
-            .sections
-            .iter()
-            .filter(|s| matches!(s, HelpInfo::Error(_)))
-        {
-            write!(separated.ready(), "{}", section)?;
-        }
-
-        for section in self
-            .sections
-            .iter()
-            .filter(|s| matches!(s, HelpInfo::Custom(_)))
-        {
-            write!(separated.ready(), "{}", section)?;
-        }
-
-        #[cfg(feature = "capture-spantrace")]
-        {
-            let span_trace = self
-                .span_trace
-                .as_ref()
-                .or_else(|| get_deepest_spantrace(error))
-                .expect("SpanTrace capture failed");
-
-            write!(&mut separated.ready(), "{}", FormattedSpanTrace(span_trace))?;
-        }
-
-        if let Some(backtrace) = self.backtrace.as_ref() {
-            let bt_str = installed_printer()
-                .format_trace_to_string(&backtrace)
-                .unwrap();
-
-            write!(
-                indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
-                "{}",
-                bt_str
-            )?;
-        } else if self
-            .sections
-            .iter()
-            .any(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
-        {
-            writeln!(f)?;
-        }
-
-        for section in self
-            .sections
-            .iter()
-            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
-        {
-            write!(f, "\n{}", section)?;
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-struct InstallError;
-
-impl fmt::Display for InstallError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("could not install the BacktracePrinter as another was already installed")
-    }
-}
-
-impl std::error::Error for InstallError {}
-
-#[cfg(feature = "capture-spantrace")]
-struct FormattedSpanTrace<'a>(&'a SpanTrace);
-
-#[cfg(feature = "capture-spantrace")]
-impl fmt::Display for FormattedSpanTrace<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use std::fmt::Write;
-
-        match self.0.status() {
-            SpanTraceStatus::CAPTURED => {
-                write!(indented(f).with_format(Format::Uniform { indentation: "  " }), "{}", color_spantrace::colorize(self.0))?;
-            },
-            SpanTraceStatus::UNSUPPORTED => write!(f, "Warning: SpanTrace capture is Unsupported.\nEnsure that you've setup an error layer and the versions match")?,
-            _ => (),
-        }
-
-        Ok(())
-    }
-}
-
 /// Builder for customizing the behavior of the global panic and error report hooks
-///
-/// # Examples
-///
-/// This enables configuration like custom frame filters:
-///
-/// ```rust
-/// color_eyre::HookBuilder::default()
-///     .add_frame_filter(Box::new(|frames| {
-///         let filters = &[
-///             "evil_function",
-///         ];
-///
-///         frames.retain(|frame| {
-///             !filters.iter().any(|f| {
-///                 let name = if let Some(name) = frame.name.as_ref() {
-///                     name.as_str()
-///                 } else {
-///                     return true;
-///                 };
-///
-///                 name.starts_with(f)
-///             })
-///         });
-///     }))
-///     .install()
-///     .unwrap();
-/// ```
 #[derive(Default)]
 pub struct HookBuilder {
-    filters: Vec<Box<FilterCallback>>,
+    filters: Vec<Box<config::FilterCallback>>,
 }
 
-impl HookBuilder {
-    /// Add a custom filter to the set of frame filters
-    pub fn add_frame_filter(mut self, filter: Box<FilterCallback>) -> Self {
-        self.filters.push(filter);
-        self
-    }
-
-    /// Install the given Hook as the global error report hook
-    pub fn install(self) -> Result<(), crate::eyre::Report> {
-        let printer = self.into_printer();
-        crate::eyre::set_hook(Box::new(|e| Box::new(Handler::default(e))))?;
-
-        if CONFIG.set(printer).is_err() {
-            Err(InstallError)?
-        }
-
-        Ok(())
-    }
-
-    /// Add the default set of filters to this `HookBuilder`'s configuration
-    pub fn add_eyre_filters(self) -> Self {
-        self.add_frame_filter(Box::new(|frames| {
-            let filters = &[
-                "<color_eyre::Handler as eyre::EyreHandler>::default",
-                "eyre::",
-                "color_eyre::",
-            ];
-
-            frames.retain(|frame| {
-                !filters.iter().any(|f| {
-                    let name = if let Some(name) = frame.name.as_ref() {
-                        name.as_str()
-                    } else {
-                        return true;
-                    };
-
-                    name.starts_with(f)
-                })
-            });
-        }))
-    }
-
-    fn into_printer(self) -> color_backtrace::BacktracePrinter {
-        let mut printer = color_backtrace::BacktracePrinter::default();
-        for filter in self.filters {
-            printer = printer.add_frame_filter(filter);
-        }
-        printer
-    }
-}
-
-static CONFIG: OnceCell<color_backtrace::BacktracePrinter> = OnceCell::new();
+static CONFIG: OnceCell<config::Printer> = OnceCell::new();
 
 /// A helper trait for attaching informational sections to error reports to be
 /// displayed after the chain of errors
@@ -688,73 +439,7 @@ trait ColorExt {
     fn make_intense(self) -> Self;
 }
 
-impl ColorExt for ansi_term::Color {
-    fn make_intense(self) -> Self {
-        use ansi_term::Color::*;
-
-        match self {
-            Black => Fixed(8),
-            Red => Fixed(9),
-            Green => Fixed(10),
-            Yellow => Fixed(11),
-            Blue => Fixed(12),
-            Purple => Fixed(13),
-            Cyan => Fixed(14),
-            White => Fixed(15),
-            Fixed(color) if color < 8 => Fixed(color + 8),
-            other => other,
-        }
-    }
-}
-
-impl ColorExt for ansi_term::Style {
-    fn make_intense(mut self) -> Self {
-        if let Some(color) = self.foreground {
-            self.foreground = Some(color.make_intense());
-        }
-        self
-    }
-}
-
-fn backtrace_enabled() -> bool {
-    // Cache the result of reading the environment variables to make
-    // backtrace captures speedy, because otherwise reading environment
-    // variables every time can be somewhat slow.
-    static ENABLED: AtomicUsize = AtomicUsize::new(0);
-    match ENABLED.load(SeqCst) {
-        0 => {}
-        1 => return false,
-        _ => return true,
-    }
-    let enabled = match env::var("RUST_LIB_BACKTRACE") {
-        Ok(s) => s != "0",
-        Err(_) => match env::var("RUST_BACKTRACE") {
-            Ok(s) => s != "0",
-            Err(_) => false,
-        },
-    };
-    ENABLED.store(enabled as usize + 1, SeqCst);
-    enabled
-}
-
-#[cfg(feature = "capture-spantrace")]
-fn get_deepest_spantrace<'a>(error: &'a (dyn Error + 'static)) -> Option<&'a SpanTrace> {
-    eyre::Chain::new(error)
-        .rev()
-        .flat_map(|error| error.span_trace())
-        .next()
-}
-
-/// Override the global BacktracePrinter used by `color_eyre::Handler` when printing captured
-/// backtraces.
+/// Install the default panic and error report hooks
 pub fn install() -> Result<(), crate::eyre::Report> {
-    HookBuilder::default().add_eyre_filters().install()
-}
-
-fn installed_printer() -> &'static color_backtrace::BacktracePrinter {
-    CONFIG.get_or_init(default_printer)
-}
-
-fn default_printer() -> color_backtrace::BacktracePrinter {
-    HookBuilder::default().add_eyre_filters().into_printer()
+    HookBuilder::default().add_default_filters().install()
 }
