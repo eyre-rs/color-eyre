@@ -20,6 +20,12 @@ impl Handler {
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         self.span_trace.as_ref()
     }
+
+    fn spantrace_capture_enabled() -> bool {
+        std::env::var("RUST_SPANTRACE")
+            .map(|val| val != "0")
+            .unwrap_or(true)
+    }
 }
 
 impl Handler {
@@ -32,11 +38,12 @@ impl Handler {
         };
 
         #[cfg(feature = "capture-spantrace")]
-        let span_trace = if get_deepest_spantrace(error).is_none() {
-            Some(SpanTrace::capture())
-        } else {
-            None
-        };
+        let span_trace =
+            if Self::spantrace_capture_enabled() && get_deepest_spantrace(error).is_none() {
+                Some(SpanTrace::capture())
+            } else {
+                None
+            };
 
         Self {
             backtrace,
@@ -97,17 +104,17 @@ impl eyre::EyreHandler for Handler {
 
         #[cfg(feature = "capture-spantrace")]
         {
-            let span_trace = self
+            if let Some(span_trace) = self
                 .span_trace
                 .as_ref()
                 .or_else(|| get_deepest_spantrace(error))
-                .expect("SpanTrace capture failed");
-
-            write!(
-                &mut separated.ready(),
-                "{}",
-                crate::writers::FormattedSpanTrace(span_trace)
-            )?;
+            {
+                write!(
+                    &mut separated.ready(),
+                    "{}",
+                    crate::writers::FormattedSpanTrace(span_trace)
+                )?;
+            }
         }
 
         if let Some(backtrace) = self.backtrace.as_ref() {
