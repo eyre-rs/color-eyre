@@ -53,7 +53,7 @@
 //!
 //! ```rust
 //! if std::env::var("RUST_SPANTRACE").is_err() {
-//!     std::env::set_var("RUST_SPANTRACE", "0").unwrap();
+//!     std::env::set_var("RUST_SPANTRACE", "0");
 //! }
 //! ```
 //!
