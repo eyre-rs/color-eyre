@@ -3,7 +3,6 @@
 use crate::ColorExt;
 use ansi_term::Color::*;
 use std::env;
-use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
 use std::{fmt, path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
@@ -394,7 +393,7 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
         write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
     }
 
-    if backtrace_enabled() {
+    if panic_verbosity() != Verbosity::Minimal {
         let bt = backtrace::Backtrace::new();
         let fmt_bt = installed_printer().format_backtrace(&bt);
         writeln!(out, "\n\n{}", fmt_bt)?;
@@ -513,44 +512,23 @@ fn default_printer() -> Printer {
     HookBuilder::default().add_default_filters().into_printer()
 }
 
-pub(crate) fn backtrace_enabled() -> bool {
-    // Cache the result of reading the environment variables to make
-    // backtrace captures speedy, because otherwise reading environment
-    // variables every time can be somewhat slow.
-    static ENABLED: AtomicUsize = AtomicUsize::new(0);
-    match ENABLED.load(SeqCst) {
-        0 => {}
-        1 => return false,
-        _ => return true,
-    }
-    let enabled = match env::var("RUST_LIB_BACKTRACE") {
-        Ok(s) => s != "0",
-        Err(_) => match env::var("RUST_BACKTRACE") {
-            Ok(s) => s != "0",
-            Err(_) => false,
-        },
-    };
-    ENABLED.store(enabled as usize + 1, SeqCst);
-    enabled
-}
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-enum Verbosity {
+pub(crate) enum Verbosity {
     Minimal,
     Medium,
     Full,
 }
 
 fn panic_verbosity() -> Verbosity {
-    match env::var("RUST_BACKTRACE").or_else(|_| env::var("RUST_LIB_BACKTRACE")) {
+    match env::var("RUST_BACKTRACE") {
         Ok(s) if s == "full" => Verbosity::Full,
         Ok(s) if s != "0" => Verbosity::Medium,
         _ => Verbosity::Minimal,
     }
 }
 
-fn lib_verbosity() -> Verbosity {
-    match env::var("RUST_LIB_BACKTRACE") {
+pub(crate) fn lib_verbosity() -> Verbosity {
+    match env::var("RUST_LIB_BACKTRACE").or_else(|_| env::var("RUST_BACKTRACE")) {
         Ok(s) if s == "full" => Verbosity::Full,
         Ok(s) if s != "0" => Verbosity::Medium,
         _ => Verbosity::Minimal,

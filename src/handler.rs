@@ -1,4 +1,4 @@
-use crate::config::installed_printer;
+use crate::config::{installed_printer, lib_verbosity, Verbosity};
 use crate::ColorExt;
 use crate::{section::help::HelpInfo, writers::HeaderWriter, Handler};
 use ansi_term::Color::*;
@@ -25,7 +25,7 @@ impl Handler {
 impl Handler {
     #[allow(unused_variables)]
     pub(crate) fn default(error: &(dyn std::error::Error + 'static)) -> Self {
-        let backtrace = if crate::config::backtrace_enabled() {
+        let backtrace = if lib_verbosity() != Verbosity::Minimal {
             Some(Backtrace::new())
         } else {
             None
