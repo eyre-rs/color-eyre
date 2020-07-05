@@ -39,6 +39,24 @@
 //! color-eyre = { version = "0.4", default-features = false }
 //! ```
 //!
+//! ### Disabling SpanTrace capture by default
+//!
+//! color-eyre defaults to capturing span traces. This is because `SpanTrace`
+//! capture is significantly cheaper than `Backtrace` capture. However, like
+//! backtraces, span traces are most useful for debugging applications, and it's
+//! not uncommon to want to disable span trace capture by default to keep noise out
+//! of error messages intended for users of an application rather than the
+//! developer.
+//!
+//! To disable span trace capture you must explicitly set one of the env variables
+//! that regulate `SpanTrace` capture to `"0"`:
+//!
+//! ```rust
+//! if std::env::var("RUST_SPANTRACE").is_err() {
+//!     std::env::set_var("RUST_SPANTRACE", "0").unwrap();
+//! }
+//! ```
+//!
 //! ### Improving perf on debug builds
 //!
 //! In debug mode `color-eyre` behaves noticably worse than `eyre`. This is caused
@@ -199,7 +217,7 @@
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 //! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
 //! [`examples/multiple_errors.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/multiple_errors.rs
-#![doc(html_root_url = "https://docs.rs/color-eyre/0.4.1")]
+#![doc(html_root_url = "https://docs.rs/color-eyre/0.4.2")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
     missing_debug_implementations,
@@ -365,11 +383,9 @@ impl Handler {
         self.span_trace.as_ref()
     }
 
+    // Check if spantrace capture is explicitly disabled
     fn should_capture_spantrace() -> bool {
         std::env::var("RUST_SPANTRACE")
-            .or_else(|_| std::env::var("RUST_LIB_SPANTRACE"))
-            .or_else(|_| std::env::var("SPANTRACE"))
-            .or_else(|_| std::env::var("LIB_SPANTRACE"))
             .map(|val| val != "0")
             .unwrap_or(true)
     }
