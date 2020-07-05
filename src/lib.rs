@@ -198,6 +198,10 @@
 #![allow(clippy::try_err)]
 use backtrace::Backtrace;
 pub use eyre;
+#[doc(hidden)]
+pub use eyre::Report;
+#[doc(hidden)]
+pub use eyre::Result;
 use once_cell::sync::OnceCell;
 use section::help::HelpInfo;
 pub use section::{Section, SectionExt};
