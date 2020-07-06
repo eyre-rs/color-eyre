@@ -237,7 +237,7 @@ impl HookBuilder {
     /// # Details
     ///
     /// By default this function calls `add_default_filters()` and
-    /// `spantrace_capture_by_default(true)`, to get a `HookBuilder` with all
+    /// `capture_span_trace_by_default(true)`. To get a `HookBuilder` with all
     /// features disabled by default call `HookBuilder::blank()`.
     ///
     /// # Example
@@ -277,7 +277,7 @@ impl HookBuilder {
     /// color_eyre::config::HookBuilder::default()
     ///     .add_frame_filter(Box::new(|frames| {
     ///         let filters = &[
-    ///             "evil_function",
+    ///             "uninteresting_function",
     ///         ];
     ///
     ///         frames.retain(|frame| {

@@ -1,4 +1,4 @@
-use color_eyre::{eyre::Report, eyre::WrapErr, Help};
+use color_eyre::{eyre::Report, eyre::WrapErr, Section};
 use pretty_assertions::assert_eq;
 use tracing::{info, instrument};
 

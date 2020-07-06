@@ -1,14 +1,14 @@
 //! Provides an extension trait for attaching `Section` to error reports.
 use crate::{
     eyre::{Report, Result},
-    ColorExt, Help,
+    ColorExt, Section,
 };
 use ansi_term::Color::*;
 use indenter::indented;
 use std::fmt::Write;
 use std::fmt::{self, Display};
 
-impl<T, E> Help<T> for std::result::Result<T, E>
+impl<T, E> Section<T> for std::result::Result<T, E>
 where
     E: Into<Report>,
 {
