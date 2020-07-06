@@ -37,6 +37,19 @@
 //! color-eyre = "0.5"
 //! ```
 //!
+//! And install the panic and error report handlers:
+//!
+//! ```rust
+//! use color_eyre::eyre::Result;
+//!
+//! fn main() -> Result<()> {
+//!     color_eyre::install()?;
+//!
+//!     // ...
+//!     # Ok(())
+//! }
+//! ```
+//!
 //! ### Disabling tracing support
 //!
 //! If you don't plan on using `tracing_error` and `SpanTrace` you can disable the
@@ -53,25 +66,6 @@
 //! capture is significantly cheaper than `Backtrace` capture. However, like
 //! backtraces, span traces are most useful for debugging applications, and it's
 //! not uncommon to want to disable span trace capture by default to keep noise out
-//! of error messages intended for users of an application rather than the
-//! developer.
-//!
-//! To disable span trace capture you must explicitly set the env variables
-//! that regulate `SpanTrace` capture to `"0"`:
-//!
-//! ```rust
-//! if std::env::var("RUST_SPANTRACE").is_err() {
-//!     std::env::set_var("RUST_SPANTRACE", "0");
-//! }
-//! ```
-//!
-//! ### Disabling SpanTrace capture by default
-//!
-//! color-eyre defaults to capturing span traces. This is because `SpanTrace`
-//! capture is significantly cheaper than `Backtrace` capture. However, like
-//! backtraces, span traces are most useful for debugging applications, and it's
-//! not uncommon to want to disable span trace capture by default to keep noise out
-//! of error messages intended for users of an application rather than the
 //! developer.
 //!
 //! To disable span trace capture you must explicitly set one of the env variables
@@ -92,7 +86,7 @@
 //! matter much for how expensive backtrace capture is, it will always be in the
 //! 10s of milliseconds to capture. A debug version of `backtrace::Backtrace`
 //! however isn't so lucky, and can take an order of magnitude more time to capture
-//! a backtrace compared to it's std counterpart.
+//! a backtrace compared to its std counterpart.
 //!
 //! Cargo [profile
 //! overrides](https://doc.rust-lang.org/cargo/reference/profiles.html#overrides)
@@ -111,7 +105,7 @@
 //! ### Multiple report format verbosity levels
 //!
 //! `color-eyre` provides 3 different report formats for how it formats the captured `SpanTrace`
-//! and `Backtrace`, minimal, short, and full. Take the below screenshots of the output produced by [`examples/usage.rs`]:
+//! and `Backtrace`, minimal, short, and full. Take the below snippets of the output produced by [`examples/usage.rs`]:
 //!
 //! ---
 //!
@@ -407,7 +401,7 @@ pub struct Handler {
     sections: Vec<HelpInfo>,
 }
 
-static CONFIG: OnceCell<config::Printer> = OnceCell::new();
+static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();
 
 /// A helper trait for attaching informational sections to error reports to be
 /// displayed after the chain of errors
@@ -609,8 +603,28 @@ trait ColorExt {
 }
 
 /// Install the default panic and error report hooks
+///
+/// This function must be called to enable the customization of `eyre::Report`
+/// provided by `color-eyre`. This function should be called early, ideally
+/// before any errors could be encountered.
+///
+/// Only the first install will succeed. Calling this function after another
+/// report handler has been installed will cause an error. **Note**: This
+/// function _must_ be called before any `eyre::Report`s are constructed to
+/// prevent the default handler from being installed.
+///
+/// Examples
+///
+/// ```rust
+/// use color_eyre::eyre::Result;
+///
+/// fn main() -> Result<()> {
+///     color_eyre::install()?;
+///
+///     // ...
+///     # Ok(())
+/// }
+/// ```
 pub fn install() -> Result<(), crate::eyre::Report> {
-    config::HookBuilder::default()
-        .add_default_filters()
-        .install()
+    config::HookBuilder::default().install()
 }

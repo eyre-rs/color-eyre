@@ -8,7 +8,6 @@ fn main() -> Result<(), Report> {
     install_tracing();
 
     color_eyre::config::HookBuilder::default()
-        .add_default_filters()
         .add_frame_filter(Box::new(|frames| {
             let filters = &["custom_filter::main"];
 

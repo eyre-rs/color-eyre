@@ -1,4 +1,4 @@
-use crate::config::{installed_printer, lib_verbosity, Verbosity};
+use crate::config::installed_printer;
 use crate::ColorExt;
 use crate::{section::help::HelpInfo, writers::HeaderWriter, Handler};
 use ansi_term::Color::*;
@@ -20,39 +20,9 @@ impl Handler {
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         self.span_trace.as_ref()
     }
-
-    fn spantrace_capture_enabled() -> bool {
-        std::env::var("RUST_SPANTRACE")
-            .map(|val| val != "0")
-            .unwrap_or(true)
-    }
 }
 
-impl Handler {
-    #[allow(unused_variables)]
-    pub(crate) fn default(error: &(dyn std::error::Error + 'static)) -> Self {
-        let backtrace = if lib_verbosity() != Verbosity::Minimal {
-            Some(Backtrace::new())
-        } else {
-            None
-        };
-
-        #[cfg(feature = "capture-spantrace")]
-        let span_trace =
-            if Self::spantrace_capture_enabled() && get_deepest_spantrace(error).is_none() {
-                Some(SpanTrace::capture())
-            } else {
-                None
-            };
-
-        Self {
-            backtrace,
-            #[cfg(feature = "capture-spantrace")]
-            span_trace,
-            sections: Vec::new(),
-        }
-    }
-}
+impl Handler {}
 
 impl eyre::EyreHandler for Handler {
     fn debug(
@@ -174,7 +144,7 @@ impl ColorExt for ansi_term::Style {
 }
 
 #[cfg(feature = "capture-spantrace")]
-fn get_deepest_spantrace<'a>(
+pub(crate) fn get_deepest_spantrace<'a>(
     error: &'a (dyn std::error::Error + 'static),
 ) -> Option<&'a SpanTrace> {
     eyre::Chain::new(error)

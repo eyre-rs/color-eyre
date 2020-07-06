@@ -1,5 +1,5 @@
 //! Configuration options for customizing the behavior of the provided panic
-//and error reporting hooks
+//! and error reporting hooks
 use crate::ColorExt;
 use ansi_term::Color::*;
 use std::env;
@@ -226,12 +226,49 @@ impl Frame {
 }
 
 /// Builder for customizing the behavior of the global panic and error report hooks
-#[derive(Default)]
 pub struct HookBuilder {
     filters: Vec<Box<FilterCallback>>,
+    capture_span_trace_by_default: bool,
 }
 
 impl HookBuilder {
+    /// Construct a HookBuilder
+    ///
+    /// # Details
+    ///
+    /// By default this function calls `add_default_filters()` and
+    /// `spantrace_capture_by_default(true)`, to get a `HookBuilder` with all
+    /// features disabled by default call `HookBuilder::blank()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use color_eyre::config::HookBuilder;
+    ///
+    /// HookBuilder::new()
+    ///     .install()
+    ///     .unwrap();
+    /// ```
+    pub fn new() -> Self {
+        Self::blank()
+            .add_default_filters()
+            .capture_span_trace_by_default(true)
+    }
+
+    /// Construct a HookBuilder with minimal features enabled
+    pub fn blank() -> Self {
+        HookBuilder {
+            filters: vec![],
+            capture_span_trace_by_default: false,
+        }
+    }
+
+    /// Configures the default capture mode for `SpanTraces` in error reports and panics
+    pub fn capture_span_trace_by_default(mut self, cond: bool) -> Self {
+        self.capture_span_trace_by_default = cond;
+        self
+    }
+
     /// Add a custom filter to the set of frame filters
     ///
     /// # Examples
@@ -265,11 +302,11 @@ impl HookBuilder {
 
     /// Install the given Hook as the global error report hook
     pub fn install(self) -> Result<(), crate::eyre::Report> {
-        let printer = self.into_printer();
-        crate::eyre::set_hook(Box::new(|e| Box::new(crate::Handler::default(e))))?;
+        let (panic_hook, eyre_hook) = self.into_hooks();
+        crate::eyre::set_hook(Box::new(move |e| Box::new(eyre_hook.default(e))))?;
         install_panic_hook();
 
-        if crate::CONFIG.set(printer).is_err() {
+        if crate::CONFIG.set(panic_hook).is_err() {
             Err(InstallError)?
         }
 
@@ -282,12 +319,23 @@ impl HookBuilder {
             .add_frame_filter(Box::new(eyre_frame_filters))
     }
 
-    pub(crate) fn into_printer(self) -> Printer {
-        let mut printer = Printer::default();
-        for filter in self.filters {
-            printer = printer.add_frame_filter(filter);
-        }
-        printer
+    pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
+        let panic_hook = PanicHook {
+            filters: self.filters.into_iter().map(Into::into).collect(),
+            capture_span_trace_by_default: self.capture_span_trace_by_default,
+        };
+
+        let eyre_hook = EyreHook {
+            capture_span_trace_by_default: self.capture_span_trace_by_default,
+        };
+
+        (panic_hook, eyre_hook)
+    }
+}
+
+impl Default for HookBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -387,32 +435,31 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
         writeln!(out, " to include source snippets.")?;
     }
 
+    let printer = installed_printer();
+
     #[cfg(feature = "capture-spantrace")]
     {
-        let span_trace = tracing_error::SpanTrace::capture();
-        write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
+        if printer.spantrace_capture_enabled() {
+            let span_trace = tracing_error::SpanTrace::capture();
+            write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
+        }
     }
 
     if panic_verbosity() != Verbosity::Minimal {
         let bt = backtrace::Backtrace::new();
-        let fmt_bt = installed_printer().format_backtrace(&bt);
+        let fmt_bt = printer.format_backtrace(&bt);
         writeln!(out, "\n\n{}", fmt_bt)?;
     }
 
     Ok(())
 }
 
-#[derive(Default)]
-pub(crate) struct Printer {
+pub(crate) struct PanicHook {
     filters: Vec<Arc<FilterCallback>>,
+    capture_span_trace_by_default: bool,
 }
 
-impl Printer {
-    fn add_frame_filter(mut self, filter: Box<FilterCallback>) -> Self {
-        self.filters.push(filter.into());
-        self
-    }
-
+impl PanicHook {
     pub(crate) fn format_backtrace<'a>(
         &'a self,
         trace: &'a backtrace::Backtrace,
@@ -422,10 +469,53 @@ impl Printer {
             inner: trace,
         }
     }
+
+    fn spantrace_capture_enabled(&self) -> bool {
+        std::env::var("RUST_SPANTRACE")
+            .map(|val| val != "0")
+            .unwrap_or(self.capture_span_trace_by_default)
+    }
+}
+
+pub(crate) struct EyreHook {
+    capture_span_trace_by_default: bool,
+}
+
+impl EyreHook {
+    #[allow(unused_variables)]
+    pub(crate) fn default(&self, error: &(dyn std::error::Error + 'static)) -> crate::Handler {
+        let backtrace = if lib_verbosity() != Verbosity::Minimal {
+            Some(backtrace::Backtrace::new())
+        } else {
+            None
+        };
+
+        #[cfg(feature = "capture-spantrace")]
+        let span_trace = if self.spantrace_capture_enabled()
+            && crate::handler::get_deepest_spantrace(error).is_none()
+        {
+            Some(tracing_error::SpanTrace::capture())
+        } else {
+            None
+        };
+
+        crate::Handler {
+            backtrace,
+            #[cfg(feature = "capture-spantrace")]
+            span_trace,
+            sections: Vec::new(),
+        }
+    }
+
+    fn spantrace_capture_enabled(&self) -> bool {
+        std::env::var("RUST_SPANTRACE")
+            .map(|val| val != "0")
+            .unwrap_or(self.capture_span_trace_by_default)
+    }
 }
 
 pub(crate) struct BacktraceFormatter<'a> {
-    printer: &'a Printer,
+    printer: &'a PanicHook,
     inner: &'a backtrace::Backtrace,
 }
 
@@ -504,12 +594,13 @@ impl fmt::Display for BacktraceFormatter<'_> {
     }
 }
 
-pub(crate) fn installed_printer() -> &'static Printer {
+pub(crate) fn installed_printer() -> &'static PanicHook {
     crate::CONFIG.get_or_init(default_printer)
 }
 
-fn default_printer() -> Printer {
-    HookBuilder::default().add_default_filters().into_printer()
+fn default_printer() -> PanicHook {
+    let (panic_hook, _) = HookBuilder::default().into_hooks();
+    panic_hook
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
