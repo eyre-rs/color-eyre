@@ -1,10 +1,9 @@
-use color_eyre::eyre::WrapErr;
-use color_eyre::*;
-
-use wasm_bindgen_test::*;
-
-#[wasm_bindgen_test]
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen_test::wasm_bindgen_test]
 pub fn color_eyre_simple() {
+    use color_eyre::eyre::WrapErr;
+    use color_eyre::*;
+
     install().expect("Failed to install color_eyre");
     let err_str = format!(
         "{:?}",
