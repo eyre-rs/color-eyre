@@ -376,21 +376,13 @@ fn eyre_frame_filters(frames: &mut Vec<&Frame>) {
 }
 
 fn install_panic_hook() {
-    std::panic::set_hook(Box::new(move |pi| {
-        if let Err(e) = print_panic_info(pi) {
-            // Panicking while handling a panic would send us into a deadlock,
-            // so we just print the error to stderr instead.
-            eprintln!("Error while printing panic: {:?}", e);
-        }
-    }))
+    std::panic::set_hook(Box::new(print_panic_info))
 }
 
-fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
-    use std::io::Write;
-
-    let stdout = std::io::stdout();
-    let mut out = stdout.lock();
-    writeln!(out, "{}", Red.paint("The application panicked (crashed)."))?;
+fn print_panic_info(pi: &std::panic::PanicInfo<'_>) {
+    let stderr = std::io::stderr();
+    let mut _out = stderr.lock();
+    eprintln!("{}", Red.paint("The application panicked (crashed)."));
 
     // Print panic message.
     let payload = pi
@@ -400,39 +392,36 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
         .or_else(|| pi.payload().downcast_ref::<&str>().cloned())
         .unwrap_or("<non string panic payload>");
 
-    write!(out, "Message:  ")?;
-    writeln!(out, "{}", Cyan.paint(payload))?;
+    eprint!("Message:  ");
+    eprintln!("{}", Cyan.paint(payload));
 
     // If known, print panic location.
-    write!(out, "Location: ")?;
+    eprint!("Location: ");
     if let Some(loc) = pi.location() {
-        write!(out, "{}", Purple.paint(loc.file()))?;
-        write!(out, ":")?;
-        writeln!(out, "{}", Purple.paint(loc.line().to_string()))?;
+        eprint!("{}", Purple.paint(loc.file()));
+        eprint!(":");
+        eprintln!("{}", Purple.paint(loc.line().to_string()));
     } else {
-        writeln!(out, "<unknown>")?;
+        eprintln!("<unknown>");
     }
 
     let v = panic_verbosity();
 
     // Print some info on how to increase verbosity.
     if v == Verbosity::Minimal {
-        write!(out, "\nBacktrace omitted.\n\nRun with ")?;
-        // out.set_color(&self.colors.env_var)?;
-        write!(out, "RUST_BACKTRACE=1")?;
-        writeln!(out, " environment variable to display it.")?;
+        eprint!("\nBacktrace omitted.\n\nRun with ");
+        eprint!("RUST_BACKTRACE=1");
+        eprintln!(" environment variable to display it.");
     } else {
         // This text only makes sense if frames are displayed.
-        write!(out, "\nRun with ")?;
-        // out.set_color(&self.colors.env_var)?;
-        write!(out, "COLORBT_SHOW_HIDDEN=1")?;
-        writeln!(out, " environment variable to disable frame filtering.")?;
+        eprint!("\nRun with ");
+        eprint!("COLORBT_SHOW_HIDDEN=1");
+        eprintln!(" environment variable to disable frame filtering.");
     }
     if v <= Verbosity::Medium {
-        write!(out, "Run with ")?;
-        // out.set_color(&self.colors.env_var)?;
-        write!(out, "RUST_BACKTRACE=full")?;
-        writeln!(out, " to include source snippets.")?;
+        eprint!("Run with ");
+        eprint!("RUST_BACKTRACE=full");
+        eprintln!(" to include source snippets.");
     }
 
     let printer = installed_printer();
@@ -441,17 +430,15 @@ fn print_panic_info(pi: &std::panic::PanicInfo<'_>) -> std::io::Result<()> {
     {
         if printer.spantrace_capture_enabled() {
             let span_trace = tracing_error::SpanTrace::capture();
-            write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
+            eprint!("{}", crate::writers::FormattedSpanTrace(&span_trace));
         }
     }
 
     if panic_verbosity() != Verbosity::Minimal {
         let bt = backtrace::Backtrace::new();
         let fmt_bt = printer.format_backtrace(&bt);
-        writeln!(out, "\n\n{}", fmt_bt)?;
+        eprintln!("\n\n{}", fmt_bt);
     }
-
-    Ok(())
 }
 
 pub(crate) struct PanicHook {
