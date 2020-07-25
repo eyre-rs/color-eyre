@@ -387,10 +387,10 @@ fn install_panic_hook() {
     std::panic::set_hook(Box::new(|pi| eprintln!("{}", PanicPrinter(pi))))
 }
 
-fn print_panic_info(printer: &PanicPrinter<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) -> fmt::Result {
     let pi = printer.0;
 
-    writeln!(f, "{}", Red.paint("The application panicked (crashed)."))?;
+    writeln!(out, "{}", Red.paint("The application panicked (crashed)."))?;
 
     // Print panic message.
     let payload = pi
@@ -400,36 +400,36 @@ fn print_panic_info(printer: &PanicPrinter<'_>, f: &mut fmt::Formatter<'_>) -> f
         .or_else(|| pi.payload().downcast_ref::<&str>().cloned())
         .unwrap_or("<non string panic payload>");
 
-    write!(f, "Message:  ")?;
-    writeln!(f, "{}", Cyan.paint(payload))?;
+    write!(out, "Message:  ")?;
+    writeln!(out, "{}", Cyan.paint(payload))?;
 
     // If known, print panic location.
-    write!(f, "Location: ")?;
+    write!(out, "Location: ")?;
     if let Some(loc) = pi.location() {
-        write!(f, "{}", Purple.paint(loc.file()))?;
-        write!(f, ":")?;
-        writeln!(f, "{}", Purple.paint(loc.line().to_string()))?;
+        write!(out, "{}", Purple.paint(loc.file()))?;
+        write!(out, ":")?;
+        writeln!(out, "{}", Purple.paint(loc.line().to_string()))?;
     } else {
-        writeln!(f, "<unknown>")?;
+        writeln!(out, "<unknown>")?;
     }
 
     let v = panic_verbosity();
 
     // Print some info on how to increase verbosity.
     if v == Verbosity::Minimal {
-        write!(f, "\nBacktrace omitted.\n\nRun with ")?;
-        write!(f, "RUST_BACKTRACE=1")?;
-        writeln!(f, " environment variable to display it.")?;
+        write!(out, "\nBacktrace omitted.\n\nRun with ")?;
+        write!(out, "RUST_BACKTRACE=1")?;
+        writeln!(out, " environment variable to display it.")?;
     } else {
         // This text only makes sense if frames are displayed.
-        write!(f, "\nRun with ")?;
-        write!(f, "COLORBT_SHOW_HIDDEN=1")?;
-        writeln!(f, " environment variable to disable frame filtering.")?;
+        write!(out, "\nRun with ")?;
+        write!(out, "COLORBT_SHOW_HIDDEN=1")?;
+        writeln!(out, " environment variable to disable frame filtering.")?;
     }
     if v <= Verbosity::Medium {
-        write!(f, "Run with ")?;
-        write!(f, "RUST_BACKTRACE=full")?;
-        writeln!(f, " to include source snippets.")?;
+        write!(out, "Run with ")?;
+        write!(out, "RUST_BACKTRACE=full")?;
+        writeln!(out, " to include source snippets.")?;
     }
 
     let printer = installed_printer();
@@ -438,14 +438,14 @@ fn print_panic_info(printer: &PanicPrinter<'_>, f: &mut fmt::Formatter<'_>) -> f
     {
         if printer.spantrace_capture_enabled() {
             let span_trace = tracing_error::SpanTrace::capture();
-            write!(f, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
+            write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
         }
     }
 
     if panic_verbosity() != Verbosity::Minimal {
         let bt = backtrace::Backtrace::new();
         let fmt_bt = printer.format_backtrace(&bt);
-        writeln!(f, "\n\n{}", fmt_bt)?;
+        writeln!(out, "\n\n{}", fmt_bt)?;
     }
 
     Ok(())
