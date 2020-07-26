@@ -1,8 +1,13 @@
 //! Configuration options for customizing the behavior of the provided panic
 //! and error reporting hooks
-use crate::ColorExt;
+use crate::{
+    writers::{EnvSection, HeaderWriter},
+    ColorExt,
+};
 use ansi_term::Color::*;
+use indenter::{indented, Format};
 use std::env;
+use std::fmt::Write as _;
 use std::{fmt, path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
@@ -54,10 +59,16 @@ impl fmt::Display for Frame {
             };
             write!(f, "{}", color.paint(&name[..name.len() - 19]))?;
             let color = Black.make_intense();
-            writeln!(f, "{}", color.paint(&name[name.len() - 19..]))?;
+            write!(f, "{}", color.paint(&name[name.len() - 19..]))?;
         } else {
-            writeln!(f, "{}", name)?;
+            write!(f, "{}", name)?;
         }
+
+        let separated = &mut HeaderWriter {
+            inner: &mut *f,
+            header: &"\n",
+            started: false,
+        };
 
         // Print source location, if known.
         if let Some(ref file) = self.filename {
@@ -65,14 +76,14 @@ impl fmt::Display for Frame {
             let lineno = self
                 .lineno
                 .map_or("<unknown line>".to_owned(), |x| x.to_string());
-            writeln!(
-                f,
+            write!(
+                &mut separated.ready(),
                 "    at {}:{}",
                 Purple.paint(filestr),
                 Purple.paint(lineno)
             )?;
         } else {
-            writeln!(f, "    at <unknown source file>")?;
+            write!(&mut separated.ready(), "    at <unknown source file>")?;
         }
 
         let v = if std::thread::panicking() {
@@ -83,7 +94,54 @@ impl fmt::Display for Frame {
 
         // Maybe print source.
         if v >= Verbosity::Full {
-            self.print_source_if_avail(f)?;
+            write!(&mut separated.ready(), "{}", SourceSection(self))?;
+        }
+
+        Ok(())
+    }
+}
+
+struct SourceSection<'a>(&'a Frame);
+
+impl fmt::Display for SourceSection<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (lineno, filename) = match (self.0.lineno, self.0.filename.as_ref()) {
+            (Some(a), Some(b)) => (a, b),
+            // Without a line number and file name, we can't sensibly proceed.
+            _ => return Ok(()),
+        };
+
+        let file = match std::fs::File::open(filename) {
+            Ok(file) => file,
+            Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            e @ Err(_) => e.unwrap(),
+        };
+
+        use std::fmt::Write;
+        use std::io::BufRead;
+
+        // Extract relevant lines.
+        let reader = std::io::BufReader::new(file);
+        let start_line = lineno - 2.min(lineno - 1);
+        let surrounding_src = reader.lines().skip(start_line as usize - 1).take(5);
+        let mut buf = String::new();
+        let separated = &mut HeaderWriter {
+            inner: &mut *f,
+            header: &"\n",
+            started: false,
+        };
+        let mut f = separated.in_progress();
+        for (line, cur_line_no) in surrounding_src.zip(start_line..) {
+            let line = line.unwrap();
+            if cur_line_no == lineno {
+                let color = White.bold();
+                write!(&mut buf, "{:>8} > {}", cur_line_no, line)?;
+                write!(&mut f, "{}", color.paint(&buf))?;
+                buf.clear();
+            } else {
+                write!(&mut f, "{:>8} │ {}", cur_line_no, line)?;
+            }
+            f = separated.ready();
         }
 
         Ok(())
@@ -186,42 +244,6 @@ impl Frame {
         }
 
         false
-    }
-
-    fn print_source_if_avail(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (lineno, filename) = match (self.lineno, self.filename.as_ref()) {
-            (Some(a), Some(b)) => (a, b),
-            // Without a line number and file name, we can't sensibly proceed.
-            _ => return Ok(()),
-        };
-
-        let file = match std::fs::File::open(filename) {
-            Ok(file) => file,
-            Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-            e @ Err(_) => e.unwrap(),
-        };
-
-        use std::fmt::Write;
-        use std::io::BufRead;
-
-        // Extract relevant lines.
-        let reader = std::io::BufReader::new(file);
-        let start_line = lineno - 2.min(lineno - 1);
-        let surrounding_src = reader.lines().skip(start_line as usize - 1).take(5);
-        let mut buf = String::new();
-        for (line, cur_line_no) in surrounding_src.zip(start_line..) {
-            let line = line.unwrap();
-            if cur_line_no == lineno {
-                let color = White.bold();
-                write!(&mut buf, "{:>8} > {}", cur_line_no, line)?;
-                writeln!(f, "{}", color.paint(&buf))?;
-                buf.clear();
-            } else {
-                writeln!(f, "{:>8} │ {}", cur_line_no, line)?;
-            }
-        }
-
-        Ok(())
     }
 }
 
@@ -387,66 +409,87 @@ fn install_panic_hook() {
     std::panic::set_hook(Box::new(|pi| eprintln!("{}", PanicPrinter(pi))))
 }
 
-fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let pi = printer.0;
+struct PanicMessage<'a>(&'a PanicPrinter<'a>);
 
-    writeln!(out, "{}", Red.paint("The application panicked (crashed)."))?;
+impl fmt::Display for PanicMessage<'_> {
+    fn fmt(&self, out: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pi = (self.0).0;
+        writeln!(out, "{}", Red.paint("The application panicked (crashed)."))?;
 
-    // Print panic message.
-    let payload = pi
-        .payload()
-        .downcast_ref::<String>()
-        .map(String::as_str)
-        .or_else(|| pi.payload().downcast_ref::<&str>().cloned())
-        .unwrap_or("<non string panic payload>");
+        // Print panic message.
+        let payload = pi
+            .payload()
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| pi.payload().downcast_ref::<&str>().cloned())
+            .unwrap_or("<non string panic payload>");
 
-    write!(out, "Message:  ")?;
-    writeln!(out, "{}", Cyan.paint(payload))?;
+        write!(out, "Message:  ")?;
+        writeln!(out, "{}", Cyan.paint(payload))?;
 
-    // If known, print panic location.
-    write!(out, "Location: ")?;
-    if let Some(loc) = pi.location() {
-        write!(out, "{}", Purple.paint(loc.file()))?;
-        write!(out, ":")?;
-        writeln!(out, "{}", Purple.paint(loc.line().to_string()))?;
-    } else {
-        writeln!(out, "<unknown>")?;
+        // If known, print panic location.
+        write!(out, "Location: ")?;
+        if let Some(loc) = pi.location() {
+            write!(out, "{}", Purple.paint(loc.file()))?;
+            write!(out, ":")?;
+            write!(out, "{}", Purple.paint(loc.line().to_string()))?;
+        } else {
+            write!(out, "<unknown>")?;
+        }
+
+        Ok(())
     }
+}
+
+fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(out, "{}", PanicMessage(printer))?;
 
     let v = panic_verbosity();
 
-    // Print some info on how to increase verbosity.
-    if v == Verbosity::Minimal {
-        write!(out, "\nBacktrace omitted.\n\nRun with ")?;
-        write!(out, "RUST_BACKTRACE=1")?;
-        writeln!(out, " environment variable to display it.")?;
-    } else {
-        // This text only makes sense if frames are displayed.
-        write!(out, "\nRun with ")?;
-        write!(out, "COLORBT_SHOW_HIDDEN=1")?;
-        writeln!(out, " environment variable to disable frame filtering.")?;
-    }
-    if v <= Verbosity::Medium {
-        write!(out, "Run with ")?;
-        write!(out, "RUST_BACKTRACE=full")?;
-        writeln!(out, " to include source snippets.")?;
-    }
-
     let printer = installed_printer();
+
+    let span_trace = if printer.spantrace_capture_enabled() {
+        Some(tracing_error::SpanTrace::capture())
+    } else {
+        None
+    };
+
+    let separated = &mut HeaderWriter {
+        inner: &mut *out,
+        header: &"\n\n",
+        started: false,
+    };
 
     #[cfg(feature = "capture-spantrace")]
     {
-        if printer.spantrace_capture_enabled() {
-            let span_trace = tracing_error::SpanTrace::capture();
-            write!(out, "{}", crate::writers::FormattedSpanTrace(&span_trace))?;
+        if let Some(span_trace) = span_trace.as_ref() {
+            write!(
+                &mut separated.ready(),
+                "{}",
+                crate::writers::FormattedSpanTrace(span_trace)
+            )?;
         }
     }
 
-    if panic_verbosity() != Verbosity::Minimal {
+    let capture_bt = v != Verbosity::Minimal;
+
+    if capture_bt {
         let bt = backtrace::Backtrace::new();
-        let fmt_bt = printer.format_backtrace(&bt);
-        writeln!(out, "\n\n{}", fmt_bt)?;
+        let fmted_bt = printer.format_backtrace(&bt);
+        write!(
+            indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
+            "{}",
+            fmted_bt
+        )?;
     }
+
+    let env_section = EnvSection {
+        bt_captured: capture_bt,
+        #[cfg(feature = "capture-spantrace")]
+        span_trace: span_trace.as_ref(),
+    };
+
+    write!(&mut separated.ready(), "{}", env_section)?;
 
     Ok(())
 }
@@ -518,7 +561,7 @@ pub(crate) struct BacktraceFormatter<'a> {
 
 impl fmt::Display for BacktraceFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{:━^80}", " BACKTRACE ")?;
+        write!(f, "{:━^80}", " BACKTRACE ")?;
 
         // Collect frame info.
         let frames: Vec<_> = self
@@ -547,8 +590,14 @@ impl fmt::Display for BacktraceFormatter<'_> {
 
         if filtered_frames.is_empty() {
             // TODO: Would probably look better centered.
-            return writeln!(f, "<empty backtrace>");
+            return write!(f, "\n<empty backtrace>");
         }
+
+        let separated = &mut HeaderWriter {
+            inner: &mut *f,
+            header: &"\n",
+            started: false,
+        };
 
         // Don't let filters mess with the order.
         filtered_frames.sort_by_key(|x| x.n);
@@ -566,7 +615,7 @@ impl fmt::Display for BacktraceFormatter<'_> {
                         decorator = "⋮",
                     )
                 );
-                writeln!(f, "{}", color.paint(text))?;
+                write!(&mut separated.ready(), "{}", color.paint(text))?;
             };
         }
 
@@ -576,7 +625,7 @@ impl fmt::Display for BacktraceFormatter<'_> {
             if frame_delta != 0 {
                 print_hidden!(frame_delta);
             }
-            write!(f, "{}", frame)?;
+            write!(&mut separated.ready(), "{}", frame)?;
             last_n = frame.n;
         }
 
@@ -606,7 +655,7 @@ pub(crate) enum Verbosity {
     Full,
 }
 
-fn panic_verbosity() -> Verbosity {
+pub(crate) fn panic_verbosity() -> Verbosity {
     match env::var("RUST_BACKTRACE") {
         Ok(s) if s == "full" => Verbosity::Full,
         Ok(s) if s != "0" => Verbosity::Medium,

@@ -1,6 +1,10 @@
 use crate::config::installed_printer;
 use crate::ColorExt;
-use crate::{section::help::HelpInfo, writers::HeaderWriter, Handler};
+use crate::{
+    section::help::HelpInfo,
+    writers::{EnvSection, HeaderWriter},
+    Handler,
+};
 use ansi_term::Color::*;
 use backtrace::Backtrace;
 use indenter::{indented, Format};
@@ -72,13 +76,14 @@ impl eyre::EyreHandler for Handler {
             write!(separated.ready(), "{}", section)?;
         }
 
+        let span_trace = self
+            .span_trace
+            .as_ref()
+            .or_else(|| get_deepest_spantrace(error));
+
         #[cfg(feature = "capture-spantrace")]
         {
-            if let Some(span_trace) = self
-                .span_trace
-                .as_ref()
-                .or_else(|| get_deepest_spantrace(error))
-            {
+            if let Some(span_trace) = span_trace {
                 write!(
                     &mut separated.ready(),
                     "{}",
@@ -110,6 +115,19 @@ impl eyre::EyreHandler for Handler {
         {
             write!(f, "\n{}", section)?;
         }
+
+        let separated = &mut HeaderWriter {
+            inner: &mut *f,
+            header: &"\n\n",
+            started: false,
+        };
+
+        let env_section = EnvSection {
+            bt_captured: self.backtrace.is_some(),
+            span_trace,
+        };
+
+        write!(&mut separated.ready(), "{}", env_section)?;
 
         Ok(())
     }
