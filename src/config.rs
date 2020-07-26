@@ -1,7 +1,7 @@
 //! Configuration options for customizing the behavior of the provided panic
 //! and error reporting hooks
 use crate::{
-    writers::{EnvSection, HeaderWriter},
+    writers::{EnvSection, WriterExt},
     ColorExt,
 };
 use ansi_term::Color::*;
@@ -64,11 +64,7 @@ impl fmt::Display for Frame {
             write!(f, "{}", name)?;
         }
 
-        let separated = &mut HeaderWriter {
-            inner: &mut *f,
-            header: &"\n",
-            started: false,
-        };
+        let mut separated = f.header("\n");
 
         // Print source location, if known.
         if let Some(ref file) = self.filename {
@@ -125,11 +121,7 @@ impl fmt::Display for SourceSection<'_> {
         let start_line = lineno - 2.min(lineno - 1);
         let surrounding_src = reader.lines().skip(start_line as usize - 1).take(5);
         let mut buf = String::new();
-        let separated = &mut HeaderWriter {
-            inner: &mut *f,
-            header: &"\n",
-            started: false,
-        };
+        let mut separated = f.header("\n");
         let mut f = separated.in_progress();
         for (line, cur_line_no) in surrounding_src.zip(start_line..) {
             let line = line.unwrap();
@@ -344,10 +336,12 @@ impl HookBuilder {
     pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
         let panic_hook = PanicHook {
             filters: self.filters.into_iter().map(Into::into).collect(),
+            #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
         };
 
         let eyre_hook = EyreHook {
+            #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
         };
 
@@ -448,17 +442,14 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
 
     let printer = installed_printer();
 
+    #[cfg(feature = "capture-spantrace")]
     let span_trace = if printer.spantrace_capture_enabled() {
         Some(tracing_error::SpanTrace::capture())
     } else {
         None
     };
 
-    let separated = &mut HeaderWriter {
-        inner: &mut *out,
-        header: &"\n\n",
-        started: false,
-    };
+    let mut separated = out.header("\n\n");
 
     #[cfg(feature = "capture-spantrace")]
     {
@@ -484,7 +475,7 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
     }
 
     let env_section = EnvSection {
-        bt_captured: capture_bt,
+        bt_captured: &capture_bt,
         #[cfg(feature = "capture-spantrace")]
         span_trace: span_trace.as_ref(),
     };
@@ -496,6 +487,7 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
 
 pub(crate) struct PanicHook {
     filters: Vec<Arc<FilterCallback>>,
+    #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
 }
 
@@ -510,6 +502,7 @@ impl PanicHook {
         }
     }
 
+    #[cfg(feature = "capture-spantrace")]
     fn spantrace_capture_enabled(&self) -> bool {
         std::env::var("RUST_SPANTRACE")
             .map(|val| val != "0")
@@ -518,6 +511,7 @@ impl PanicHook {
 }
 
 pub(crate) struct EyreHook {
+    #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
 }
 
@@ -547,6 +541,7 @@ impl EyreHook {
         }
     }
 
+    #[cfg(feature = "capture-spantrace")]
     fn spantrace_capture_enabled(&self) -> bool {
         std::env::var("RUST_SPANTRACE")
             .map(|val| val != "0")
@@ -593,11 +588,7 @@ impl fmt::Display for BacktraceFormatter<'_> {
             return write!(f, "\n<empty backtrace>");
         }
 
-        let separated = &mut HeaderWriter {
-            inner: &mut *f,
-            header: &"\n",
-            started: false,
-        };
+        let mut separated = f.header("\n");
 
         // Don't let filters mess with the order.
         filtered_frames.sort_by_key(|x| x.n);

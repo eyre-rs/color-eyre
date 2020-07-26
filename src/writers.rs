@@ -4,15 +4,33 @@ use std::fmt::{self, Display};
 #[cfg(feature = "capture-spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-pub(crate) struct HeaderWriter<'a, H, W> {
-    pub(crate) inner: W,
-    pub(crate) header: &'a H,
-    pub(crate) started: bool,
+#[allow(explicit_outlives_requirements)]
+pub(crate) struct HeaderWriter<'a, H, W>
+where
+    H: ?Sized,
+{
+    inner: W,
+    header: &'a H,
+    started: bool,
 }
 
-pub(crate) struct ReadyHeaderWriter<'a, 'b, H, W>(&'b mut HeaderWriter<'a, H, W>);
+pub(crate) trait WriterExt: Sized {
+    fn header<H: ?Sized>(self, header: &H) -> HeaderWriter<'_, H, Self>;
+}
 
-impl<'a, H, W> HeaderWriter<'a, H, W> {
+impl<W> WriterExt for W {
+    fn header<H: ?Sized>(self, header: &H) -> HeaderWriter<'_, H, Self> {
+        HeaderWriter {
+            inner: self,
+            header,
+            started: false,
+        }
+    }
+}
+
+pub(crate) struct ReadyHeaderWriter<'a, 'b, H: ?Sized, W>(&'b mut HeaderWriter<'a, H, W>);
+
+impl<'a, H: ?Sized, W> HeaderWriter<'a, H, W> {
     pub(crate) fn ready(&mut self) -> ReadyHeaderWriter<'a, '_, H, W> {
         self.started = false;
 
@@ -26,7 +44,7 @@ impl<'a, H, W> HeaderWriter<'a, H, W> {
     }
 }
 
-impl<H, W> fmt::Write for ReadyHeaderWriter<'_, '_, H, W>
+impl<'a, H: ?Sized, W> fmt::Write for ReadyHeaderWriter<'a, '_, H, W>
 where
     H: Display,
     W: fmt::Write,
@@ -63,7 +81,7 @@ impl fmt::Display for FormattedSpanTrace<'_> {
 }
 
 pub(crate) struct EnvSection<'a> {
-    pub(crate) bt_captured: bool,
+    pub(crate) bt_captured: &'a bool,
     #[cfg(feature = "capture-spantrace")]
     pub(crate) span_trace: Option<&'a SpanTrace>,
 }
@@ -93,8 +111,10 @@ impl fmt::Display for EnvSection<'_> {
     }
 }
 
+#[cfg(feature = "capture-spantrace")]
 struct SpanTraceOmited<'a>(Option<&'a SpanTrace>);
 
+#[cfg(feature = "capture-spantrace")]
 impl fmt::Display for SpanTraceOmited<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(span_trace) = self.0 {
