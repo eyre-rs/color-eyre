@@ -6,7 +6,9 @@ fn main() -> Result<(), Report> {
     #[cfg(feature = "capture-spantrace")]
     install_tracing();
 
-    color_eyre::install()?;
+    color_eyre::config::HookBuilder::default()
+        .panic_note("consider reporting the bug at github")
+        .install()?;
 
     read_config();
 

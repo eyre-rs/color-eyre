@@ -247,6 +247,7 @@ pub struct HookBuilder {
     filters: Vec<Box<FilterCallback>>,
     capture_span_trace_by_default: bool,
     display_env_section: bool,
+    panic_note: Option<String>,
 }
 
 impl HookBuilder {
@@ -279,7 +280,24 @@ impl HookBuilder {
             filters: vec![],
             capture_span_trace_by_default: false,
             display_env_section: true,
+            panic_note: None,
         }
+    }
+
+    /// Add a custom note to the panic hook that will be printed
+    /// in the panic message.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// color_eyre::config::HookBuilder::default()
+    ///     .panic_note("consider reporting the bug at https://github.com/yaahc/color-eyre")
+    ///     .install()
+    ///     .unwrap()
+    /// ```
+    pub fn panic_note<S: Into<String>>(mut self, note: S) -> Self {
+        self.panic_note = Some(note.into());
+        self
     }
 
     /// Configures the default capture mode for `SpanTraces` in error reports and panics
@@ -347,6 +365,7 @@ impl HookBuilder {
     pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
         let panic_hook = PanicHook {
             filters: self.filters.into_iter().map(Into::into).collect(),
+            note: self.panic_note,
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
@@ -497,11 +516,16 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         write!(&mut separated.ready(), "{}", env_section)?;
     }
 
+    if let Some(ref note) = printer.note {
+        write!(&mut separated.ready(), "{}", note)?;
+    }
+
     Ok(())
 }
 
 pub(crate) struct PanicHook {
     filters: Vec<Arc<FilterCallback>>,
+    note: Option<String>,
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,
