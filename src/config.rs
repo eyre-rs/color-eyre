@@ -285,7 +285,7 @@ impl HookBuilder {
         }
     }
 
-    /// Add a custom note to the panic hook that will be printed
+    /// Add a custom section to the panic hook that will be printed
     /// in the panic message.
     ///
     /// # Examples
@@ -484,6 +484,10 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
 
     let mut separated = out.header("\n\n");
 
+    if let Some(ref section) = printer.section {
+        write!(&mut separated.ready(), "{}", section)?;
+    }
+
     #[cfg(feature = "capture-spantrace")]
     {
         if let Some(span_trace) = span_trace.as_ref() {
@@ -515,10 +519,6 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         };
 
         write!(&mut separated.ready(), "{}", env_section)?;
-    }
-
-    if let Some(ref section) = printer.section {
-        write!(&mut separated.ready(), "{}", section)?;
     }
 
     Ok(())
