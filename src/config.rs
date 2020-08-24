@@ -285,7 +285,7 @@ impl HookBuilder {
         }
     }
 
-    /// Add a custom note to the panic hook that will be printed
+    /// Add a custom section to the panic hook that will be printed
     /// in the panic message.
     ///
     /// # Examples
