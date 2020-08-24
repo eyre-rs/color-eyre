@@ -5,6 +5,7 @@ use crate::{
     ColorExt,
 };
 use ansi_term::Color::*;
+use fmt::Display;
 use indenter::{indented, Format};
 use std::env;
 use std::fmt::Write as _;
@@ -247,7 +248,7 @@ pub struct HookBuilder {
     filters: Vec<Box<FilterCallback>>,
     capture_span_trace_by_default: bool,
     display_env_section: bool,
-    panic_note: Option<String>,
+    panic_section: Option<Box<dyn Display + Send + Sync + 'static>>,
 }
 
 impl HookBuilder {
@@ -280,7 +281,7 @@ impl HookBuilder {
             filters: vec![],
             capture_span_trace_by_default: false,
             display_env_section: true,
-            panic_note: None,
+            panic_section: None,
         }
     }
 
@@ -291,12 +292,12 @@ impl HookBuilder {
     ///
     /// ```rust
     /// color_eyre::config::HookBuilder::default()
-    ///     .panic_note("consider reporting the bug at https://github.com/yaahc/color-eyre")
+    ///     .panic_section("consider reporting the bug at https://github.com/yaahc/color-eyre")
     ///     .install()
     ///     .unwrap()
     /// ```
-    pub fn panic_note<S: Into<String>>(mut self, note: S) -> Self {
-        self.panic_note = Some(note.into());
+    pub fn panic_section<S: Display + Send + Sync + 'static>(mut self, section: S) -> Self {
+        self.panic_section = Some(Box::new(section));
         self
     }
 
@@ -365,7 +366,7 @@ impl HookBuilder {
     pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
         let panic_hook = PanicHook {
             filters: self.filters.into_iter().map(Into::into).collect(),
-            note: self.panic_note,
+            section: self.panic_section,
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
@@ -516,8 +517,8 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         write!(&mut separated.ready(), "{}", env_section)?;
     }
 
-    if let Some(ref note) = printer.note {
-        write!(&mut separated.ready(), "{}", note)?;
+    if let Some(ref section) = printer.section {
+        write!(&mut separated.ready(), "{}", section)?;
     }
 
     Ok(())
@@ -525,7 +526,7 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
 
 pub(crate) struct PanicHook {
     filters: Vec<Arc<FilterCallback>>,
-    note: Option<String>,
+    section: Option<Box<dyn Display + Send + Sync + 'static>>,
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,

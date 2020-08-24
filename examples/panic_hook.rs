@@ -7,7 +7,7 @@ fn main() -> Result<(), Report> {
     install_tracing();
 
     color_eyre::config::HookBuilder::default()
-        .panic_note("consider reporting the bug on github")
+        .panic_section("consider reporting the bug on github")
         .install()?;
 
     read_config();
