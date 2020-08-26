@@ -633,31 +633,21 @@ impl fmt::Display for BacktraceFormatter<'_> {
         // Don't let filters mess with the order.
         filtered_frames.sort_by_key(|x| x.n);
 
-        struct HiddenFrames {
-            n: usize,
-        }
-
-        #[allow(clippy::write_literal)]
-        impl fmt::Display for HiddenFrames {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(
-                    f,
-                    "{decorator} {n} frame{plural} hidden {decorator}",
-                    n = self.n,
-                    plural = if self.n == 1 { "" } else { "s" },
-                    decorator = "⋮",
-                )
-            }
-        }
+        let mut buf = String::new();
 
         macro_rules! print_hidden {
             ($n:expr) => {
                 let n = $n;
+                buf.clear();
                 write!(
-                    &mut separated.ready(),
-                    "{:^80}",
-                    HiddenFrames { n }.to_string().bright_cyan()
-                )?;
+                    &mut buf,
+                    "{decorator} {n} frame{plural} hidden {decorator}",
+                    n = n,
+                    plural = if n == 1 { "" } else { "s" },
+                    decorator = "⋮",
+                )
+                .expect("writing to strings doesn't panic");
+                write!(&mut separated.ready(), "{:^80}", buf.bright_cyan())?;
             };
         }
 
