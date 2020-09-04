@@ -315,6 +315,11 @@ impl HookBuilder {
     ///
     /// struct MyPanicMessage;
     ///
+    /// color_eyre::config::HookBuilder::default()
+    ///     .panic_message(MyPanicMessage)
+    ///     .install()
+    ///     .unwrap()
+    ///
     /// impl PanicMessage for MyPanicMessage {
     ///     fn display(&self, pi: &std::panic::PanicInfo<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     ///         writeln!(f, "{}", "The application panicked (crashed).".red())?;
@@ -349,11 +354,6 @@ impl HookBuilder {
     /// fn custom_url(location: &Location<'_>, message: &str) -> impl fmt::Display {
     ///     "todo"
     /// }
-    ///
-    /// color_eyre::config::HookBuilder::default()
-    ///     .panic_message(MyPanicMessage)
-    ///     .install()
-    ///     .unwrap()
     /// ```
     pub fn panic_message<S: PanicMessage>(mut self, section: S) -> Self {
         self.panic_message = Box::new(section);
