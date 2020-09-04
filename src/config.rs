@@ -1,6 +1,9 @@
 //! Configuration options for customizing the behavior of the provided panic
 //! and error reporting hooks
-use crate::writers::{EnvSection, WriterExt};
+use crate::{
+    section::PanicMessage,
+    writers::{EnvSection, WriterExt},
+};
 use fmt::Display;
 use indenter::{indented, Format};
 use owo_colors::OwoColorize;
@@ -389,10 +392,7 @@ impl HookBuilder {
     }
 }
 
-pub trait PanicMessage: Send + Sync + 'static {
-    fn display(&self, pi: &std::panic::PanicInfo<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-}
-
+#[allow(missing_docs)]
 impl Default for HookBuilder {
     fn default() -> Self {
         Self::new()
