@@ -318,7 +318,7 @@ impl HookBuilder {
     /// color_eyre::config::HookBuilder::default()
     ///     .panic_message(MyPanicMessage)
     ///     .install()
-    ///     .unwrap()
+    ///     .unwrap();
     ///
     /// impl PanicMessage for MyPanicMessage {
     ///     fn display(&self, pi: &std::panic::PanicInfo<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
