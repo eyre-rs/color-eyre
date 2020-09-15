@@ -40,9 +40,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 [profile.dev.package.backtrace]
 opt-level = 3
 
-[package.metadata.release]
-disable-push = true
-
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
 search = "Unreleased"
