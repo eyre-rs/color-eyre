@@ -359,6 +359,8 @@
     while_true
 )]
 #![allow(clippy::try_err)]
+use std::sync::Arc;
+
 use backtrace::Backtrace;
 pub use eyre;
 #[doc(hidden)]
@@ -393,13 +395,14 @@ mod writers;
 /// [`tracing-error`]: https://docs.rs/tracing-error
 /// [`color_eyre::Report`]: type.Report.html
 /// [`color_eyre::Result`]: type.Result.html
-#[derive(Debug)]
 pub struct Handler {
     backtrace: Option<Backtrace>,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
     sections: Vec<HelpInfo>,
     display_env_section: bool,
+    issue_url: Option<String>,
+    issue_metadata: Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
 }
 
 static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();

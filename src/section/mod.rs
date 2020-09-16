@@ -2,6 +2,7 @@
 use crate::writers::WriterExt;
 use std::fmt::{self, Display};
 
+pub(crate) mod github;
 pub(crate) mod help;
 
 /// An indenteted section with a header for an error report
