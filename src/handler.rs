@@ -124,6 +124,7 @@ impl eyre::EyreHandler for Handler {
             write!(&mut separated.ready(), "{}", env_section)?;
         }
 
+        #[cfg(feature = "issue-url")]
         if let Some(url) = &self.issue_url {
             let mut payload = String::from("Error: ");
             for (n, error) in errors() {

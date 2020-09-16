@@ -359,7 +359,6 @@
     while_true
 )]
 #![allow(clippy::try_err)]
-use std::sync::Arc;
 
 use backtrace::Backtrace;
 pub use eyre;
@@ -401,8 +400,11 @@ pub struct Handler {
     span_trace: Option<SpanTrace>,
     sections: Vec<HelpInfo>,
     display_env_section: bool,
+    #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
-    issue_metadata: Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
+    #[cfg(feature = "issue-url")]
+    issue_metadata:
+        std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
 }
 
 static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();

@@ -2,6 +2,7 @@
 use crate::writers::WriterExt;
 use std::fmt::{self, Display};
 
+#[cfg(feature = "issue-url")]
 pub(crate) mod github;
 pub(crate) mod help;
 

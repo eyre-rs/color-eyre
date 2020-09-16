@@ -1,8 +1,10 @@
+#![allow(dead_code, unused_imports)]
 use color_eyre::eyre;
 use eyre::{Report, Result};
 use tracing::instrument;
 
 #[instrument]
+#[cfg(feature = "issue-url")]
 fn main() -> Result<(), Report> {
     #[cfg(feature = "capture-spantrace")]
     install_tracing();
@@ -18,6 +20,11 @@ fn main() -> Result<(), Report> {
     read_config2();
 
     Ok(())
+}
+
+#[cfg(not(feature = "issue-url"))]
+fn main() {
+    unimplemented!("this example requires the \"issue-url\" feature")
 }
 
 #[cfg(feature = "capture-spantrace")]

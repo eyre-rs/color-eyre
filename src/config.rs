@@ -250,7 +250,9 @@ pub struct HookBuilder {
     display_env_section: bool,
     panic_section: Option<Box<dyn Display + Send + Sync + 'static>>,
     panic_message: Box<dyn PanicMessage>,
+    #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
+    #[cfg(feature = "issue-url")]
     issue_metadata: Vec<(String, Box<dyn Display + Send + Sync + 'static>)>,
 }
 
@@ -286,7 +288,9 @@ impl HookBuilder {
             display_env_section: true,
             panic_section: None,
             panic_message: Box::new(DefaultPanicMessage),
+            #[cfg(feature = "issue-url")]
             issue_url: None,
+            #[cfg(feature = "issue-url")]
             issue_metadata: vec![],
         }
     }
@@ -383,6 +387,7 @@ impl HookBuilder {
     ///     .install()
     ///     .unwrap();
     /// ```
+    #[cfg(feature = "issue-url")]
     pub fn issue_url<S: ToString>(mut self, url: S) -> Self {
         self.issue_url = Some(url.to_string());
         self
@@ -401,6 +406,7 @@ impl HookBuilder {
     ///     .install()
     ///     .unwrap();
     /// ```
+    #[cfg(feature = "issue-url")]
     pub fn add_issue_metadata<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Display,
@@ -474,6 +480,7 @@ impl HookBuilder {
     }
 
     pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
+        #[cfg(feature = "issue-url")]
         let metadata = Arc::new(self.issue_metadata);
         let panic_hook = PanicHook {
             filters: self.filters.into_iter().map(Into::into).collect(),
@@ -482,7 +489,9 @@ impl HookBuilder {
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
             panic_message: self.panic_message,
+            #[cfg(feature = "issue-url")]
             issue_url: self.issue_url.clone(),
+            #[cfg(feature = "issue-url")]
             issue_metadata: metadata.clone(),
         };
 
@@ -490,7 +499,9 @@ impl HookBuilder {
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
+            #[cfg(feature = "issue-url")]
             issue_url: self.issue_url,
+            #[cfg(feature = "issue-url")]
             issue_metadata: metadata,
         };
 
@@ -640,6 +651,7 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         write!(&mut separated.ready(), "{}", env_section)?;
     }
 
+    #[cfg(feature = "issue-url")]
     if let Some(url) = &hook.issue_url {
         let payload = printer
             .0
@@ -670,7 +682,9 @@ pub(crate) struct PanicHook {
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,
+    #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
+    #[cfg(feature = "issue-url")]
     issue_metadata: Arc<Vec<(String, Box<dyn Display + Send + Sync + 'static>)>>,
 }
 
@@ -697,7 +711,9 @@ pub(crate) struct EyreHook {
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,
+    #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
+    #[cfg(feature = "issue-url")]
     issue_metadata: Arc<Vec<(String, Box<dyn Display + Send + Sync + 'static>)>>,
 }
 
@@ -725,7 +741,9 @@ impl EyreHook {
             span_trace,
             sections: Vec::new(),
             display_env_section: self.display_env_section,
+            #[cfg(feature = "issue-url")]
             issue_url: self.issue_url.clone(),
+            #[cfg(feature = "issue-url")]
             issue_metadata: self.issue_metadata.clone(),
         }
     }
