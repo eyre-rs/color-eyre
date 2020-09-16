@@ -380,7 +380,8 @@ impl HookBuilder {
     /// ```rust
     /// color_eyre::config::HookBuilder::default()
     ///     .issue_url("https://github.com/yaahc/jane-eyre/issues/new")
-    ///     .install()?;
+    ///     .install()
+    ///     .unwrap();
     /// ```
     pub fn issue_url<S: ToString>(mut self, url: S) -> Self {
         self.issue_url = Some(url.to_string());
@@ -397,7 +398,8 @@ impl HookBuilder {
     /// color_eyre::config::HookBuilder::default()
     ///     .issue_url("https://github.com/yaahc/jane-eyre/issues/new")
     ///     .add_issue_metadata("version", "0.1.0")
-    ///     .install()?;
+    ///     .install()
+    ///     .unwrap();
     /// ```
     pub fn add_issue_metadata<K, V>(mut self, key: K, value: V) -> Self
     where
