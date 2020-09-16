@@ -388,6 +388,7 @@ impl HookBuilder {
     ///     .unwrap();
     /// ```
     #[cfg(feature = "issue-url")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "issue-url")))]
     pub fn issue_url<S: ToString>(mut self, url: S) -> Self {
         self.issue_url = Some(url.to_string());
         self
@@ -407,6 +408,7 @@ impl HookBuilder {
     ///     .unwrap();
     /// ```
     #[cfg(feature = "issue-url")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "issue-url")))]
     pub fn add_issue_metadata<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Display,
