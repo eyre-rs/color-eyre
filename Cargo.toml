@@ -1,6 +1,6 @@
 [package]
 name = "color-eyre"
-version = "0.5.4-alpha.0"
+version = "0.5.4-rc.1"
 authors = ["Jane Lusby <jlusby@yaah.dev>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
