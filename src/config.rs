@@ -364,11 +364,41 @@ impl HookBuilder {
         self
     }
 
+    /// Set an upstream github repo and enable issue reporting url generation
+    ///
+    /// # Details
+    ///
+    /// Once enabled, color-eyre will generate urls that will create customized
+    /// issues pre-populated with information about the associated error report.
+    ///
+    /// Additional information can be added to the metadata table in the
+    /// generated urls by calling `add_issue_metadata` when configuring the
+    /// HookBuilder.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// color_eyre::config::HookBuilder::default()
+    ///     .issue_url("https://github.com/yaahc/jane-eyre/issues/new")
+    ///     .install()?;
+    /// ```
     pub fn issue_url<S: ToString>(mut self, url: S) -> Self {
         self.issue_url = Some(url.to_string());
         self
     }
 
+    /// Add a new entry to the metadata table in generated github issue urls
+    ///
+    /// **Note**: this metadata will be ignored if no `issue_url` is set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// color_eyre::config::HookBuilder::default()
+    ///     .issue_url("https://github.com/yaahc/jane-eyre/issues/new")
+    ///     .add_issue_metadata("version", "0.1.0")
+    ///     .install()?;
+    /// ```
     pub fn add_issue_metadata<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Display,

@@ -1,4 +1,4 @@
-use std::{fmt, iter, panic::Location};
+use std::{fmt, panic::Location};
 
 use backtrace::Backtrace;
 use tracing_error::SpanTrace;
