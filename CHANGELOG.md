@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Add new "issue-url" feature for generating issue creation links in error
+  reports pre-populated with information about the error
 
 ## [0.5.3] - 2020-09-14
 ### Added
