@@ -3,7 +3,6 @@
 use crate::{
     section::PanicMessage,
     writers::{EnvSection, WriterExt},
-    ErrorKind,
 };
 use fmt::Display;
 use indenter::{indented, Format};
@@ -452,7 +451,7 @@ impl HookBuilder {
     #[cfg_attr(docsrs, doc(cfg(feature = "issue-url")))]
     pub fn issue_filter<F>(mut self, predicate: F) -> Self
     where
-        F: Fn(ErrorKind<'_>) -> bool + Send + Sync + 'static,
+        F: Fn(crate::ErrorKind<'_>) -> bool + Send + Sync + 'static,
     {
         self.issue_filter = Arc::new(predicate);
         self
@@ -700,7 +699,9 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
     {
         let payload = printer.0.payload();
 
-        if hook.issue_url.is_some() && (*hook.issue_filter)(ErrorKind::NonRecoverable(payload)) {
+        if hook.issue_url.is_some()
+            && (*hook.issue_filter)(crate::ErrorKind::NonRecoverable(payload))
+        {
             let url = hook.issue_url.as_ref().unwrap();
             let payload = payload
                 .downcast_ref::<String>()
@@ -926,5 +927,8 @@ pub(crate) fn lib_verbosity() -> Verbosity {
 
 /// Callback for filtering a vector of `Frame`s
 pub type FilterCallback = dyn Fn(&mut Vec<&Frame>) + Send + Sync + 'static;
+
 /// Callback for filtering issue url generation in error reports
-pub type IssueFilterCallback = dyn Fn(ErrorKind<'_>) -> bool + Send + Sync + 'static;
+#[cfg(feature = "issue-url")]
+#[cfg_attr(docsrs, doc(cfg(feature = "issue-url")))]
+pub type IssueFilterCallback = dyn Fn(crate::ErrorKind<'_>) -> bool + Send + Sync + 'static;

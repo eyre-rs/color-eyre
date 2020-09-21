@@ -1,4 +1,4 @@
-use crate::{config::installed_hook, ErrorKind};
+use crate::config::installed_hook;
 use crate::{
     section::help::HelpInfo,
     writers::{EnvSection, WriterExt},
@@ -125,7 +125,7 @@ impl eyre::EyreHandler for Handler {
         }
 
         #[cfg(feature = "issue-url")]
-        if self.issue_url.is_some() && (*self.issue_filter)(ErrorKind::Recoverable(error)) {
+        if self.issue_url.is_some() && (*self.issue_filter)(crate::ErrorKind::Recoverable(error)) {
             let url = self.issue_url.as_ref().unwrap();
             let mut payload = String::from("Error: ");
             for (n, error) in errors() {

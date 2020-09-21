@@ -12,7 +12,7 @@ categories = []
 keywords = []
 
 [features]
-default = ["capture-spantrace", "issue-url"]
+default = ["capture-spantrace"]
 capture-spantrace = ["tracing-error", "color-spantrace"]
 issue-url = ["url"]
 
