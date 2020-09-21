@@ -442,7 +442,7 @@ impl HookBuilder {
     ///
     ///             !payload.contains("my irrelevant error message")
     ///         },
-    ///         color_eyre::ErrorKind::Recoverable(error) => !error.is::<MyIrrelevantError>(),
+    ///         color_eyre::ErrorKind::Recoverable(error) => !error.is::<std::fmt::Error>(),
     ///     })
     ///     .install()
     ///     .unwrap();
