@@ -360,7 +360,10 @@
 )]
 #![allow(clippy::try_err)]
 
+use std::{any::Any, sync::Arc};
+
 use backtrace::Backtrace;
+use config::IssueFilterCallback;
 pub use eyre;
 #[doc(hidden)]
 pub use eyre::Report;
@@ -405,6 +408,16 @@ pub struct Handler {
     #[cfg(feature = "issue-url")]
     issue_metadata:
         std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
+    #[cfg(feature = "issue-url")]
+    issue_filter: Arc<IssueFilterCallback>,
+}
+
+/// The kind of type erased error being reported
+pub enum ErrorKind<'a> {
+    /// A non recoverable error aka `panic!`
+    NonRecoverable(&'a dyn Any),
+    /// A recoverable error aka `impl std::error::Error`
+    Recoverable(&'a (dyn std::error::Error + 'static)),
 }
 
 static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();

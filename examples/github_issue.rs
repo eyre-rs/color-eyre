@@ -1,5 +1,5 @@
 #![allow(dead_code, unused_imports)]
-use color_eyre::eyre;
+use color_eyre::{eyre, ErrorKind};
 use eyre::{Report, Result};
 use tracing::instrument;
 
@@ -10,8 +10,12 @@ fn main() -> Result<(), Report> {
     install_tracing();
 
     color_eyre::config::HookBuilder::default()
-        .issue_url("https://github.com/yaahc/jane-eyre/issues/new")
-        .add_issue_metadata("version", "0.1.0")
+        .issue_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new"))
+        .add_issue_metadata("version", env!("CARGO_PKG_VERSION"))
+        .issue_filter(|kind| match kind {
+            ErrorKind::NonRecoverable(_) => false,
+            ErrorKind::Recoverable(_) => true,
+        })
         .install()?;
 
     let report = read_config().unwrap_err();

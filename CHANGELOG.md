@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- add `issue_filter` method to `HookBuilder` for disabling issue generation
+  based on the error encountered.
 
 ## [0.5.4] - 2020-09-17
 ### Added
