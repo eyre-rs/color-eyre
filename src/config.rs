@@ -433,7 +433,7 @@ impl HookBuilder {
     /// color_eyre::config::HookBuilder::default()
     ///     .issue_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new"))
     ///     .issue_filter(|kind| match kind {
-    ///         ErrorKind::NonRecoverable(payload) => {
+    ///         color_eyre::ErrorKind::NonRecoverable(payload) => {
     ///             let payload = payload
     ///                 .downcast_ref::<String>()
     ///                 .map(String::as_str)
@@ -442,7 +442,7 @@ impl HookBuilder {
     ///
     ///             !payload.contains("my irrelevant error message")
     ///         },
-    ///         ErrorKind::Recoverable(error) => !error.is::<MyIrrelevantError>(),
+    ///         color_eyre::ErrorKind::Recoverable(error) => !error.is::<MyIrrelevantError>(),
     ///     })
     ///     .install()
     ///     .unwrap();
