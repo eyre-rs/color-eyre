@@ -442,7 +442,7 @@ impl HookBuilder {
     ///
     ///             !payload.contains("my irrelevant error message")
     ///         },
-    ///         ErrorKind::Recoverable(error) => !error.is<MyIrrelevantError>(),
+    ///         ErrorKind::Recoverable(error) => !error.is::<MyIrrelevantError>(),
     ///     })
     ///     .install()
     ///     .unwrap();
