@@ -1,0 +1,78 @@
+
+   0: [91mtest[0m
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  
+   0: [38;5;9mcolor_schemes[0m[38;5;9m::[0m[38;5;9mget_errors[0m with [38;5;14mmsg="test"[0m
+      at [35mcolor-eyre/tests/color_schemes.rs[0m:[35m10[0m
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [96m                              ⋮ 5 frames hidden ⋮                               [0m
+   6: [91mcolor_schemes::get_errors::{{closure}}[0m[90m::hba7992d33db48781[0m
+      at <unknown source file>
+   7: [32mstd::panicking::try::do_call[0m[90m::h1a0fdf20b2a4a970[0m
+      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/panicking.rs[0m:[35m348[0m
+       346 │             let data = &mut (*data);
+       347 │             let f = ManuallyDrop::take(&mut data.f);
+  [1m[37m     348[0m[0m [1m[37m>[0m[0m [1m[37m            data.r = ManuallyDrop::new(f());[0m[0m
+       349 │         }
+       350 │     }
+   8: __rust_try
+      at <unknown source file>
+   9: [32mstd::panicking::try[0m[90m::h15e7be5642696b2c[0m
+      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/panicking.rs[0m:[35m325[0m
+       323 │ 
+       324 │     let data_ptr = &mut data as *mut _ as *mut u8;
+  [1m[37m     325[0m[0m [1m[37m>[0m[0m [1m[37m    return if intrinsics::r#try(do_call::<F, R>, data_ptr, do_catch::<F, R>) == 0 {[0m[0m
+       326 │         Ok(ManuallyDrop::into_inner(data.r))
+       327 │     } else {
+  10: [32mstd::panic::catch_unwind[0m[90m::he4e8bd0ee1e4f768[0m
+      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/panic.rs[0m:[35m394[0m
+       392 │ #[stable(feature = "catch_unwind", since = "1.9.0")]
+       393 │ pub fn catch_unwind<F: FnOnce() -> R + UnwindSafe, R>(f: F) -> Result<R> {
+  [1m[37m     394[0m[0m [1m[37m>[0m[0m [1m[37m    unsafe { panicking::r#try(f) }[0m[0m
+       395 │ }
+       396 │ 
+  11: [91mcolor_schemes::get_errors[0m[90m::hc8c5468519b37a03[0m
+      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/color_schemes.rs[0m:[35m1[0m
+  [1m[37m       1[0m[0m [1m[37m>[0m[0m [1m[37m[0m[0m
+         2 │ use color_eyre::{eyre::Report, Section};
+         3 │ 
+         4 │ #[rustfmt::skip]
+         5 │ #[derive(Debug, thiserror::Error)]
+  12: [91mcolor_schemes::test_backwards_compatibility[0m[90m::h4dfcb005ffc778d2[0m
+      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/color_schemes.rs[0m:[35m43[0m
+        41 │ fn test_backwards_compatibility(){
+        42 │     setup();
+  [1m[37m      43[0m[0m [1m[37m>[0m[0m [1m[37m    let (error, panic_error) = get_errors("test");[0m[0m
+        44 │ 
+        45 │ 
+  13: [91mcolor_schemes::test_backwards_compatibility::{{closure}}[0m[90m::hb7a3f205ad450ca4[0m
+      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/color_schemes.rs[0m:[35m41[0m
+        39 │ #[rustfmt::skip]
+        40 │ #[test]
+  [1m[37m      41[0m[0m [1m[37m>[0m[0m [1m[37mfn test_backwards_compatibility(){[0m[0m
+        42 │     setup();
+        43 │     let (error, panic_error) = get_errors("test");
+  14: [32mcore::ops::function::FnOnce::call_once[0m[90m::h5a53a1b7e33abb7d[0m
+      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libcore/ops/function.rs[0m:[35m233[0m
+       231 │     /// Performs the call operation.
+       232 │     #[unstable(feature = "fn_traits", issue = "29625")]
+  [1m[37m     233[0m[0m [1m[37m>[0m[0m [1m[37m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m[0m
+       234 │ }
+       235 │ 
+  15: [32m<alloc::boxed::Box<F> as core::ops::function::FnOnce<A>>::call_once[0m[90m::h6633cb15d0d76942[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/liballoc/boxed.rs[0m:[35m1081[0m
+  16: [32m<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once[0m[90m::h1e20120def172c5c[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panic.rs[0m:[35m318[0m
+  17: [32mstd::panicking::try::do_call[0m[90m::hcc2ec3bbb75e9316[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs[0m:[35m348[0m
+  18: [32mstd::panicking::try[0m[90m::h94eaebaaa7dd6f41[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs[0m:[35m325[0m
+  19: [32mstd::panic::catch_unwind[0m[90m::h151c07c08497cf8b[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panic.rs[0m:[35m394[0m
+  20: [32mtest::run_test_in_process[0m[90m::hd082de93b1922c89[0m
+      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libtest/lib.rs[0m:[35m541[0m
+  [96m                              ⋮ 14 frames hidden ⋮                              [0m
+
+Run with COLORBT_SHOW_HIDDEN=1 environment variable to disable frame filtering.
