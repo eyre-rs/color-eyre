@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Add support for track caller added in eyre 0.6.1 and print original
+  callsites of errors in all `eyre::Reports` by default
 
 ## [0.5.5] - 2020-09-21
 ### Added
