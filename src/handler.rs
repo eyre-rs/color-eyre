@@ -58,6 +58,7 @@ impl eyre::EyreHandler for Handler {
 
         let mut separated = f.header("\n\n");
 
+        #[cfg(feature = "track-caller")]
         write!(
             separated.ready(),
             "{}",
@@ -152,6 +153,7 @@ impl eyre::EyreHandler for Handler {
         Ok(())
     }
 
+    #[cfg(feature = "track-caller")]
     fn track_caller(&mut self, location: &'static std::panic::Location<'static>) {
         self.location = Some(location);
     }
