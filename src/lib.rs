@@ -377,6 +377,7 @@ use tracing_error::SpanTrace;
 pub use Handler as Context;
 
 pub mod config;
+mod fmt;
 mod handler;
 pub(crate) mod private;
 pub mod section;
@@ -407,6 +408,8 @@ pub struct Handler {
         std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
     #[cfg(feature = "issue-url")]
     issue_filter: std::sync::Arc<config::IssueFilterCallback>,
+    #[cfg(feature = "track-caller")]
+    location: Option<&'static std::panic::Location<'static>>,
 }
 
 /// The kind of type erased error being reported
