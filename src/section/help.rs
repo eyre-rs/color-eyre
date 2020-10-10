@@ -239,13 +239,17 @@ pub(crate) enum HelpInfo {
 
 impl Display for HelpInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // XXX is my assumption correct that this function is guaranteed to only run after `color_eyre` was setup successfully (including setting `STYLES`), and that therefore the following line will never panic? Otherwise, we could return `fmt::Error`, but if the above is true, I like `unwrap` + a comment why this never fails better
+        let styles = crate::config::STYLES.get().unwrap();
         match self {
-            HelpInfo::Note(note) => write!(f, "{}: {}", "Note".bright_cyan(), note),
-            HelpInfo::Warning(warning) => write!(f, "{}: {}", "Warning".bright_yellow(), warning),
-            HelpInfo::Suggestion(suggestion) => {
-                write!(f, "{}: {}", "Suggestion".bright_cyan(), suggestion)
-            }
-            HelpInfo::Custom(section) => write!(f, "{}", section),
+            HelpInfo::Note(note) =>
+                write!(f, "{}: {}", "Note".style(styles.help_info_note), note),
+            HelpInfo::Warning(warning) =>
+                write!(f, "{}: {}", "Warning".style(styles.help_info_warning), warning),
+            HelpInfo::Suggestion(suggestion) =>
+                write!(f, "{}: {}", "Suggestion".style(styles.help_info_suggestion), suggestion),
+            HelpInfo::Custom(section) =>
+                write!(f, "{}", section),
             HelpInfo::Error(error) => {
                 // a lot here
                 let errors = std::iter::successors(
@@ -256,7 +260,7 @@ impl Display for HelpInfo {
                 write!(f, "Error:")?;
                 for (n, error) in errors.enumerate() {
                     writeln!(f)?;
-                    write!(indented(f).ind(n), "{}", error.bright_red())?;
+                    write!(indented(f).ind(n), "{}", error.style(styles.help_info_error))?;
                 }
 
                 Ok(())

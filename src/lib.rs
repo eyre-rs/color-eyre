@@ -407,6 +407,7 @@ pub struct Handler {
         std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
     #[cfg(feature = "issue-url")]
     issue_filter: std::sync::Arc<config::IssueFilterCallback>,
+    styles: crate::config::Styles,
 }
 
 /// The kind of type erased error being reported
@@ -433,6 +434,10 @@ static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();
 /// report handler has been installed will cause an error. **Note**: This
 /// function _must_ be called before any `eyre::Report`s are constructed to
 /// prevent the default handler from being installed.
+///
+/// Installing a global style in `color_spantrace` manually (by calling 
+/// `color_spantrace::set_styles`, or `color_spantrace::colorize` before
+/// `install` is called) will result in an error if this function is called.
 ///
 /// # Examples
 ///
