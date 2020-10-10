@@ -1,0 +1,15 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/dh/projects/rust-ssg/color-eyre/Cargo.toml
+workspace: /home/dh/projects/rust-ssg/Cargo.toml
+warning: patch for the non root package will be ignored, specify patch at the workspace root:
+package:   /home/dh/projects/rust-ssg/foo/Cargo.toml
+workspace: /home/dh/projects/rust-ssg/Cargo.toml
+    Finished dev [unoptimized + debuginfo] target(s) in 0.06s
+     Running `/home/dh/projects/rust-ssg/target/debug/examples/style_test_helper`
+[31mThe application panicked (crashed).[0m
+Message:  [36m<non string panic payload>[0m
+Location: [35mcolor-eyre/examples/style_test_helper.rs[0m:[35m39[0m
+
+Backtrace omitted.
+Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.
