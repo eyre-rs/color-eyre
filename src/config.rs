@@ -6,11 +6,11 @@ use crate::{
 };
 use fmt::Display;
 use indenter::{indented, Format};
+use once_cell::sync::OnceCell;
+use owo_colors::{OwoColorize, XtermColors};
 use std::env;
 use std::fmt::Write as _;
 use std::{fmt, path::PathBuf, sync::Arc};
-use once_cell::sync::OnceCell;
-use owo_colors::{XtermColors, OwoColorize};
 
 // re-export so end-users don't need to depend on `owo_colors`
 pub use owo_colors::{style, Style};
@@ -148,7 +148,6 @@ impl Styles {
         }
     }
 
-
     style_setters! {
         /// Styles printed paths
         file,
@@ -226,11 +225,23 @@ impl fmt::Display for Frame {
 
         if has_hash_suffix {
             if is_dependency_code {
-                write!(f, "{}", (&name[..name.len() - 19]).style(self.styles.dependency_code))?;
+                write!(
+                    f,
+                    "{}",
+                    (&name[..name.len() - 19]).style(self.styles.dependency_code)
+                )?;
             } else {
-                write!(f, "{}", (&name[..name.len() - 19]).style(self.styles.crate_code))?;
+                write!(
+                    f,
+                    "{}",
+                    (&name[..name.len() - 19]).style(self.styles.crate_code)
+                )?;
             }
-            write!(f, "{}", (&name[name.len() - 19..]).style(self.styles.code_hash))?;
+            write!(
+                f,
+                "{}",
+                (&name[name.len() - 19..]).style(self.styles.code_hash)
+            )?;
         } else {
             write!(f, "{}", name)?;
         }
@@ -476,11 +487,11 @@ impl HookBuilder {
     // XXX the following tip is a bit hacky, but it's an easy way to test new styles
 
     /// Set the global styles that `color_eyre` should use.
-    /// 
+    ///
     /// Tip: An easy way to test new styles is the following:
     ///
     /// 1) clone `color_eyre` via `git clone https://github.com/yaahc/color-eyre.git`
-    /// 
+    ///
     /// 2) `cd color-eyre`
     ///
     /// 3) open "tests/styles.rs"
@@ -700,7 +711,6 @@ impl HookBuilder {
 
     /// Install the given Hook as the global error report hook
     pub fn install(self) -> Result<(), crate::eyre::Report> {
-
         // XXX I'm not 100% sure if the following is the ideal way to handle these failures (however, I assume it is).
 
         if STYLES.set(self.styles).is_err() {
@@ -839,7 +849,11 @@ impl PanicMessage for DefaultPanicMessage {
         // XXX is my assumption correct that this function is guaranteed to only run after `color_eyre` was setup successfully (including setting `STYLES`), and that therefore the following line will never panic? Otherwise, we could return `fmt::Error`, but if the above is true, I like `unwrap` + a comment why this never fails better
         let styles = crate::config::STYLES.get().unwrap();
 
-        writeln!(f, "{}", "The application panicked (crashed).".style(styles.panic_header))?;
+        writeln!(
+            f,
+            "{}",
+            "The application panicked (crashed).".style(styles.panic_header)
+        )?;
 
         // Print panic message.
         let payload = pi
@@ -854,13 +868,7 @@ impl PanicMessage for DefaultPanicMessage {
 
         // If known, print panic location.
         write!(f, "Location: ")?;
-        if let Some(loc) = pi.location() {
-            write!(f, "{}", loc.file().style(styles.panic_file))?;
-            write!(f, ":")?;
-            write!(f, "{}", loc.line().style(styles.panic_line_number))?;
-        } else {
-            write!(f, "<unknown>")?;
-        }
+        write!(f, "{}", crate::fmt::LocationSection(pi.location(), styles))?;
 
         Ok(())
     }
@@ -1031,6 +1039,8 @@ impl EyreHook {
             #[cfg(feature = "issue-url")]
             issue_filter: self.issue_filter.clone(),
             styles: self.styles,
+            #[cfg(feature = "track-caller")]
+            location: None,
         }
     }
 
@@ -1102,7 +1112,11 @@ impl fmt::Display for BacktraceFormatter<'_> {
                     decorator = "⋮",
                 )
                 .expect("writing to strings doesn't panic");
-                write!(&mut separated.ready(), "{:^80}", buf.style(self.styles.hidden_frames))?;
+                write!(
+                    &mut separated.ready(),
+                    "{:^80}",
+                    buf.style(self.styles.hidden_frames)
+                )?;
             };
         }
 

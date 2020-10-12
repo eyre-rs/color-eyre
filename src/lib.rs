@@ -334,7 +334,7 @@
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 //! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
 //! [`examples/multiple_errors.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/multiple_errors.rs
-#![doc(html_root_url = "https://docs.rs/color-eyre/0.5.5")]
+#![doc(html_root_url = "https://docs.rs/color-eyre/0.5.6")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
     missing_docs,
@@ -377,6 +377,7 @@ use tracing_error::SpanTrace;
 pub use Handler as Context;
 
 pub mod config;
+mod fmt;
 mod handler;
 pub(crate) mod private;
 pub mod section;
@@ -408,6 +409,8 @@ pub struct Handler {
     #[cfg(feature = "issue-url")]
     issue_filter: std::sync::Arc<config::IssueFilterCallback>,
     styles: crate::config::Styles,
+    #[cfg(feature = "track-caller")]
+    location: Option<&'static std::panic::Location<'static>>,
 }
 
 /// The kind of type erased error being reported
@@ -435,7 +438,7 @@ static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();
 /// function _must_ be called before any `eyre::Report`s are constructed to
 /// prevent the default handler from being installed.
 ///
-/// Installing a global style in `color_spantrace` manually (by calling 
+/// Installing a global style in `color_spantrace` manually (by calling
 /// `color_spantrace::set_styles`, or `color_spantrace::colorize` before
 /// `install` is called) will result in an error if this function is called.
 ///
