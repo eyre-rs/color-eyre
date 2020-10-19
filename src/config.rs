@@ -710,7 +710,6 @@ impl HookBuilder {
 
     /// Install the given Hook as the global error report hook
     pub fn install(self) -> Result<(), crate::eyre::Report> {
-        // XXX I'm not 100% sure if the following is the ideal way to handle these failures (however, I assume it is).
 
         if STYLES.set(self.styles).is_err() {
             // XXX this error can only happen if `install` is called more than one time (because `STYLES` is private)
