@@ -52,7 +52,7 @@ impl eyre::EyreHandler for Handler {
 
         for (n, error) in errors() {
             writeln!(f)?;
-            write!(indented(f).ind(n), "{}", self.styles.error.style(error))?;
+            write!(indented(f).ind(n), "{}", self.theme.error.style(error))?;
         }
 
         let mut separated = f.header("\n\n");
@@ -61,7 +61,7 @@ impl eyre::EyreHandler for Handler {
         write!(
             separated.ready(),
             "{}",
-            crate::SectionExt::header(crate::fmt::LocationSection(self.location), "Location:")
+            crate::SectionExt::header(crate::fmt::LocationSection(self.location, self.theme), "Location:")
         )?;
 
         for section in self

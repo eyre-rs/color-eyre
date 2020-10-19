@@ -3,7 +3,7 @@
 
 //! This needs to be an "example" until binaries can declare separate dependencies (see https://github.com/rust-lang/cargo/issues/1982)
 
-//! See "tests/styles.rs" for more information.
+//! See "tests/theme.rs" for more information.
 
 use color_eyre::{eyre::Report, Section};
 use tracing_error::ErrorLayer;

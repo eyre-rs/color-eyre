@@ -239,15 +239,15 @@ pub(crate) enum HelpInfo {
 
 impl Display for HelpInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // XXX is my assumption correct that this function is guaranteed to only run after `color_eyre` was setup successfully (including setting `STYLES`), and that therefore the following line will never panic? Otherwise, we could return `fmt::Error`, but if the above is true, I like `unwrap` + a comment why this never fails better
-        let styles = crate::config::STYLES.get().unwrap();
+        // XXX is my assumption correct that this function is guaranteed to only run after `color_eyre` was setup successfully (including setting `THEME`), and that therefore the following line will never panic? Otherwise, we could return `fmt::Error`, but if the above is true, I like `unwrap` + a comment why this never fails better
+        let theme = crate::config::THEME.get().unwrap();
         match self {
             HelpInfo::Note(note) =>
-                write!(f, "{}: {}", "Note".style(styles.help_info_note), note),
+                write!(f, "{}: {}", "Note".style(theme.help_info_note), note),
             HelpInfo::Warning(warning) =>
-                write!(f, "{}: {}", "Warning".style(styles.help_info_warning), warning),
+                write!(f, "{}: {}", "Warning".style(theme.help_info_warning), warning),
             HelpInfo::Suggestion(suggestion) =>
-                write!(f, "{}: {}", "Suggestion".style(styles.help_info_suggestion), suggestion),
+                write!(f, "{}: {}", "Suggestion".style(theme.help_info_suggestion), suggestion),
             HelpInfo::Custom(section) =>
                 write!(f, "{}", section),
             HelpInfo::Error(error) => {
@@ -260,7 +260,7 @@ impl Display for HelpInfo {
                 write!(f, "Error:")?;
                 for (n, error) in errors.enumerate() {
                     writeln!(f)?;
-                    write!(indented(f).ind(n), "{}", error.style(styles.help_info_error))?;
+                    write!(indented(f).ind(n), "{}", error.style(theme.help_info_error))?;
                 }
 
                 Ok(())

@@ -375,6 +375,8 @@ pub use section::{IndentedSection, Section, SectionExt};
 use tracing_error::SpanTrace;
 #[doc(hidden)]
 pub use Handler as Context;
+pub use owo_colors;
+
 
 pub mod config;
 mod fmt;
@@ -408,7 +410,7 @@ pub struct Handler {
         std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
     #[cfg(feature = "issue-url")]
     issue_filter: std::sync::Arc<config::IssueFilterCallback>,
-    styles: crate::config::Styles,
+    theme: crate::config::Theme,
     #[cfg(feature = "track-caller")]
     location: Option<&'static std::panic::Location<'static>>,
 }
@@ -438,8 +440,8 @@ static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();
 /// function _must_ be called before any `eyre::Report`s are constructed to
 /// prevent the default handler from being installed.
 ///
-/// Installing a global style in `color_spantrace` manually (by calling
-/// `color_spantrace::set_styles`, or `color_spantrace::colorize` before
+/// Installing a global theme in `color_spantrace` manually (by calling
+/// `color_spantrace::set_theme` or `color_spantrace::colorize` before
 /// `install` is called) will result in an error if this function is called.
 ///
 /// # Examples
