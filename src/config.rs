@@ -15,7 +15,6 @@ use std::{fmt, path::PathBuf, sync::Arc};
 // re-export so end-users don't need to depend on `owo_colors`
 pub use owo_colors::{style, Style};
 
-// XXX Needed to access styles from `impl Section for Report` and `impl PanicMessage for DefaultPanicMessage`
 pub(crate) static STYLES: OnceCell<Styles> = OnceCell::new();
 
 #[derive(Debug)]
