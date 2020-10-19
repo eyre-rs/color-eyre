@@ -45,7 +45,6 @@ struct InstallColorBacktraceStylesError;
 
 impl fmt::Display for InstallColorBacktraceStylesError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // XXX I feel this message is not very good – any idea for something better?
         f.write_str("could not set the provided `Styles` via `color_backtrace::set_styles` globally as another was already set")
     }
 }
