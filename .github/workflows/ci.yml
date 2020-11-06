@@ -44,6 +44,18 @@ jobs:
         with:
           command: test
           args: --no-default-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features issue-url
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features track-caller
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features capture-spantrace
 
   test-versions:
     name: Test Suite
