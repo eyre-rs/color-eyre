@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Added missing `cfg`s that caused compiler errors when only enabling the
+  `issue-url` feature
 
 ## [0.5.6] - 2020-10-02
 ### Added
