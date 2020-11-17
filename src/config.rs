@@ -619,6 +619,92 @@ impl PanicMessage for DefaultPanicMessage {
     }
 }
 
+/// A type representing an error report for a panic.
+pub struct PanicReport<'a> {
+    hook: &'a PanicHook,
+    panic_info: &'a std::panic::PanicInfo<'a>,
+    backtrace: Option<backtrace::Backtrace>,
+    #[cfg(feature = "capture-spantrace")]
+    span_trace: Option<tracing_error::SpanTrace>,
+}
+
+fn print_panic_info(report: &PanicReport<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    report.hook.panic_message.display(report.panic_info, f)?;
+
+    let v = panic_verbosity();
+    let capture_bt = v != Verbosity::Minimal;
+
+    let mut separated = f.header("\n\n");
+
+    if let Some(ref section) = report.hook.section {
+        write!(&mut separated.ready(), "{}", section)?;
+    }
+
+    #[cfg(feature = "capture-spantrace")]
+    {
+        if let Some(span_trace) = report.span_trace.as_ref() {
+            write!(
+                &mut separated.ready(),
+                "{}",
+                crate::writers::FormattedSpanTrace(span_trace)
+            )?;
+        }
+    }
+
+    if let Some(bt) = report.backtrace.as_ref() {
+        let fmted_bt = report.hook.format_backtrace(&bt);
+        write!(
+            indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
+            "{}",
+            fmted_bt
+        )?;
+    }
+
+    if report.hook.display_env_section {
+        let env_section = EnvSection {
+            bt_captured: &capture_bt,
+            #[cfg(feature = "capture-spantrace")]
+            span_trace: report.span_trace.as_ref(),
+        };
+
+        write!(&mut separated.ready(), "{}", env_section)?;
+    }
+
+    #[cfg(feature = "issue-url")]
+    {
+        let payload = report.panic_info.payload();
+
+        if report.hook.issue_url.is_some()
+            && (*report.hook.issue_filter)(crate::ErrorKind::NonRecoverable(payload))
+        {
+            let url = report.hook.issue_url.as_ref().unwrap();
+            let payload = payload
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| payload.downcast_ref::<&str>().cloned())
+                .unwrap_or("<non string panic payload>");
+
+            let issue_section = crate::section::github::IssueSection::new(url, payload)
+                .with_backtrace(report.backtrace.as_ref())
+                .with_location(report.panic_info.location())
+                .with_metadata(&**report.hook.issue_metadata);
+
+            #[cfg(feature = "capture-spantrace")]
+            let issue_section = issue_section.with_span_trace(report.span_trace.as_ref());
+
+            write!(&mut separated.ready(), "{}", issue_section)?;
+        }
+    }
+
+    Ok(())
+}
+
+impl<'a, 'b> fmt::Display for PanicReport<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        print_panic_info(self, f)
+    }
+}
+
 /// A panic reporting hook
 pub struct PanicHook {
     filters: Arc<[Box<FilterCallback>]>,
@@ -696,88 +782,6 @@ impl PanicHook {
             backtrace,
             hook: self,
         }
-    }
-}
-
-/// A type representing an error report for a panic.
-pub struct PanicReport<'a> {
-    hook: &'a PanicHook,
-    panic_info: &'a std::panic::PanicInfo<'a>,
-    backtrace: Option<backtrace::Backtrace>,
-    #[cfg(feature = "capture-spantrace")]
-    span_trace: Option<tracing_error::SpanTrace>,
-}
-
-impl<'a, 'b> fmt::Display for PanicReport<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.hook.panic_message.display(self.panic_info, f)?;
-
-        let v = panic_verbosity();
-        let capture_bt = v != Verbosity::Minimal;
-
-        let mut separated = f.header("\n\n");
-
-        if let Some(ref section) = self.hook.section {
-            write!(&mut separated.ready(), "{}", section)?;
-        }
-
-        #[cfg(feature = "capture-spantrace")]
-        {
-            if let Some(span_trace) = self.span_trace.as_ref() {
-                write!(
-                    &mut separated.ready(),
-                    "{}",
-                    crate::writers::FormattedSpanTrace(span_trace)
-                )?;
-            }
-        }
-
-        if let Some(bt) = self.backtrace.as_ref() {
-            let fmted_bt = self.hook.format_backtrace(&bt);
-            write!(
-                indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
-                "{}",
-                fmted_bt
-            )?;
-        }
-
-        if self.hook.display_env_section {
-            let env_section = EnvSection {
-                bt_captured: &capture_bt,
-                #[cfg(feature = "capture-spantrace")]
-                span_trace: self.span_trace.as_ref(),
-            };
-
-            write!(&mut separated.ready(), "{}", env_section)?;
-        }
-
-        #[cfg(feature = "issue-url")]
-        {
-            let payload = self.panic_info.payload();
-
-            if self.hook.issue_url.is_some()
-                && (*self.hook.issue_filter)(crate::ErrorKind::NonRecoverable(payload))
-            {
-                let url = self.hook.issue_url.as_ref().unwrap();
-                let payload = payload
-                    .downcast_ref::<String>()
-                    .map(String::as_str)
-                    .or_else(|| payload.downcast_ref::<&str>().cloned())
-                    .unwrap_or("<non string panic payload>");
-
-                let issue_section = crate::section::github::IssueSection::new(url, payload)
-                    .with_backtrace(self.backtrace.as_ref())
-                    .with_location(self.panic_info.location())
-                    .with_metadata(&**self.hook.issue_metadata);
-
-                #[cfg(feature = "capture-spantrace")]
-                let issue_section = issue_section.with_span_trace(self.span_trace.as_ref());
-
-                write!(&mut separated.ready(), "{}", issue_section)?;
-            }
-        }
-
-        Ok(())
     }
 }
 
