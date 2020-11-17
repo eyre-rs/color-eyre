@@ -360,13 +360,14 @@
 )]
 #![allow(clippy::try_err)]
 
+use std::sync::Arc;
+
 use backtrace::Backtrace;
 pub use eyre;
 #[doc(hidden)]
 pub use eyre::Report;
 #[doc(hidden)]
 pub use eyre::Result;
-use once_cell::sync::OnceCell;
 use section::help::HelpInfo;
 #[doc(hidden)]
 pub use section::Section as Help;
@@ -396,6 +397,7 @@ mod writers;
 /// [`color_eyre::Report`]: type.Report.html
 /// [`color_eyre::Result`]: type.Result.html
 pub struct Handler {
+    filters: Arc<[Box<config::FilterCallback>]>,
     backtrace: Option<Backtrace>,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
@@ -421,8 +423,6 @@ pub enum ErrorKind<'a> {
     /// A recoverable error aka `impl std::error::Error`
     Recoverable(&'a (dyn std::error::Error + 'static)),
 }
-
-static CONFIG: OnceCell<config::PanicHook> = OnceCell::new();
 
 /// Install the default panic and error report hooks
 ///
