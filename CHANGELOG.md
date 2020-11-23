@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Exposed internal interfaces for the panic handler so that it can be wrapped
+  by consumers to customize the behaviour of the panic hook.
 
 ## [0.5.7] - 2020-11-05
 ### Fixed
