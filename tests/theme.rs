@@ -25,6 +25,18 @@ fn get_error(msg: &'static str) -> Report {
     None::<Option<()>>.ok_or_else(|| create_report(msg)).unwrap_err()
 }
 
+#[cfg(all(not(feature = "track-caller"), not(feature = "capture-spantrace"),))]
+static ERROR_FILE_NAME: &str = "theme_error_control_minimal.txt";
+
+#[cfg(all(feature = "track-caller", not(feature = "capture-spantrace"),))]
+static ERROR_FILE_NAME: &str = "theme_error_control_location.txt";
+
+#[cfg(all(not(feature = "track-caller"), feature = "capture-spantrace",))]
+static ERROR_FILE_NAME: &str = "theme_error_control_spantrace.txt";
+
+#[cfg(all(feature = "capture-spantrace", feature = "track-caller",))]
+static ERROR_FILE_NAME: &str = "theme_error_control.txt";
+
 #[test]
 fn test_error_backwards_compatibility() {
     setup();
@@ -76,20 +88,43 @@ fn test_error_backwards_compatibility() {
     */
 
     let target = format!("{:?}", error);
-    let file_name = "theme_error_control.txt";
-    test_backwards_compatibility(target, file_name)
+    test_backwards_compatibility(target, ERROR_FILE_NAME)
 }
+
+#[cfg(not(feature = "capture-spantrace"))]
+static PANIC_FILE_NAME: &str = "theme_panic_control_no_spantrace.txt";
+
+#[cfg(feature = "capture-spantrace")]
+static PANIC_FILE_NAME: &str = "theme_panic_control.txt";
 
 // The following tests the installed panic handler
 #[test]
+#[allow(unused_mut)]
 fn test_panic_backwards_compatibility() {
+    let mut features: Vec<&str> = vec![];
+    #[cfg(feature = "capture-spantrace")]
+    features.push("capture-spantrace");
+    #[cfg(feature = "issue-url")]
+    features.push("issue-url");
+    #[cfg(feature = "track-caller")]
+    features.push("track-caller");
+
+    let features = features.join(",");
+    let features = if !features.is_empty() {
+        vec!["--features", &features]
+    } else {
+        vec![]
+    };
+
     let output = std::process::Command::new("cargo")
         .args(&["run", "--example", "theme_test_helper"])
+        .arg("--no-default-features")
+        .args(&features)
         .output()
         .expect("failed to execute process");
     let target = String::from_utf8(output.stderr).expect("failed to convert output to `String`");
-    let file_name = "theme_panic_control.txt";
-    test_backwards_compatibility(target, file_name)
+    println!("{}", target);
+    test_backwards_compatibility(target, PANIC_FILE_NAME)
 }
 
 /// Helper for `test_error` and `test_panic`
