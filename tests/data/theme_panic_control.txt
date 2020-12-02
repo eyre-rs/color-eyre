@@ -1,11 +1,11 @@
-    Finished dev [unoptimized + debuginfo] target(s) in 0.05s
+    Finished dev [unoptimized + debuginfo] target(s) in 0.03s
      Running `target/debug/examples/theme_test_helper`
 [31mThe application panicked (crashed).[0m
 Message:  [36m<non string panic payload>[0m
 Location: [35mexamples/theme_test_helper.rs[0m:[35m37[0m
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+  
    0: [91mtheme_test_helper[0m[91m::[0m[91mget_error[0m with [96mmsg="test"[0m
       at [35mexamples/theme_test_helper.rs[0m:[35m34[0m
         32 │     setup();
@@ -16,25 +16,20 @@ Location: [35mexamples/theme_test_helper.rs[0m:[35m37[0m
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [96m                              ⋮ 6 frames hidden ⋮                               [0m
-   7: [91mtheme_test_helper::main[0m[90m::hcfdc3220fa92cd37[0m
-      at [35m/home/runner/work/color-eyre/color-eyre/examples/theme_test_helper.rs[0m:[35m37[0m
+   7: [91mtheme_test_helper::main[0m[90m::h0f7f307e00efc098[0m
+      at [35m/home/jlusby/git/yaahc/color-eyre/examples/theme_test_helper.rs[0m:[35m37[0m
         35 │     let _guard = span.enter();
         36 │     let error = get_error(msg);
   [37m[1m      37[0m [37m[1m>[0m [37m[1m    panic!(error)[0m
         38 │ }
-        39 │
-   8: [32mcore::ops::function::FnOnce::call_once[0m[90m::h436b2d378726e07a[0m
-      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/core/src/ops/function.rs[0m:[35m227[0m
+        39 │ 
+   8: [32mcore::ops::function::FnOnce::call_once[0m[90m::hc90fd75bf8c9f979[0m
+      at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m227[0m
+       225 │     /// Performs the call operation.
+       226 │     #[unstable(feature = "fn_traits", issue = "29625")]
+  [37m[1m     227[0m [37m[1m>[0m [37m[1m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m
+       228 │ }
+       229 │ 
   [96m                              ⋮ 11 frames hidden ⋮                              [0m
 
 Run with COLORBT_SHOW_HIDDEN=1 environment variable to disable frame filtering.
-
-
-[31mSee the src of this test for more information about the test and ways to include/exclude debugging information.
-
-[0m[0m
-Location: [35mtests/theme.rs[0m:[35m157[0m
-
-Backtrace omitted.
-Run with RUST_BACKTRACE=1 environment variable to display it.
-Run with RUST_BACKTRACE=full to include source snippets.
