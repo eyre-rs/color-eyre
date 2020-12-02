@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Bumped color-spantrace dependency version to fix a panic
 
 ## [0.5.8] - 2020-11-23
 ### Added
