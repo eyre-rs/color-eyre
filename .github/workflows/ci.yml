@@ -25,8 +25,17 @@ jobs:
           command: check
 
   test-features:
-    name: Test Suite
+    name: Test Features
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          -
+          - --all-features
+          - --no-default-features
+          - --no-default-features --features issue-url
+          - --no-default-features --features capture-spantrace
+          - --no-default-features --features track-caller
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
@@ -36,17 +45,10 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
+          args: ${{ matrix.features }}
 
   test-versions:
-    name: Test Suite
+    name: Test Versions
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -78,7 +80,7 @@ jobs:
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
 
   test-os:
-    name: Test Suite
+    name: Test Operating Systems
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

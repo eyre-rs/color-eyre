@@ -478,7 +478,7 @@ impl HookBuilder {
     }
 
     /// Set the global styles that `color_eyre` should use.
-    /// 
+    ///
     /// **Tip:** You can test new styles by editing `examples/theme.rs` in the `color-eyre` repository.
     pub fn theme(mut self, theme: Theme) -> Self {
         self.theme = theme;
@@ -698,13 +698,8 @@ impl HookBuilder {
         }
 
         let (panic_hook, eyre_hook) = self.into_hooks();
-        crate::eyre::set_hook(Box::new(move |e| Box::new(eyre_hook.default(e))))?;
-        install_panic_hook();
-
-        if crate::CONFIG.set(panic_hook).is_err() {
-            Err(InstallError)?
-        }
-
+        eyre_hook.install()?;
+        panic_hook.install();
         Ok(())
     }
 
@@ -714,11 +709,13 @@ impl HookBuilder {
             .add_frame_filter(Box::new(eyre_frame_filters))
     }
 
-    pub(crate) fn into_hooks(self) -> (PanicHook, EyreHook) {
+    /// Create a `PanicHook` and `EyreHook` from this `HookBuilder`.
+    /// This can be used if you want to combine these handlers with other handlers.
+    pub fn into_hooks(self) -> (PanicHook, EyreHook) {
         #[cfg(feature = "issue-url")]
         let metadata = Arc::new(self.issue_metadata);
         let panic_hook = PanicHook {
-            filters: self.filters.into_iter().map(Into::into).collect(),
+            filters: self.filters.into(),
             section: self.panic_section,
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
@@ -734,6 +731,7 @@ impl HookBuilder {
         };
 
         let eyre_hook = EyreHook {
+            filters: panic_hook.filters.clone(),
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
@@ -804,18 +802,6 @@ fn eyre_frame_filters(frames: &mut Vec<&Frame>) {
     });
 }
 
-struct PanicPrinter<'a>(&'a std::panic::PanicInfo<'a>);
-
-impl fmt::Display for PanicPrinter<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        print_panic_info(self, f)
-    }
-}
-
-fn install_panic_hook() {
-    std::panic::set_hook(Box::new(|pi| eprintln!("{}", PanicPrinter(pi))))
-}
-
 struct DefaultPanicMessage;
 
 impl PanicMessage for DefaultPanicMessage {
@@ -848,35 +834,30 @@ impl PanicMessage for DefaultPanicMessage {
     }
 }
 
-fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let hook = installed_hook();
-    hook.panic_message.display(printer.0, out)?;
+/// A type representing an error report for a panic.
+pub struct PanicReport<'a> {
+    hook: &'a PanicHook,
+    panic_info: &'a std::panic::PanicInfo<'a>,
+    backtrace: Option<backtrace::Backtrace>,
+    #[cfg(feature = "capture-spantrace")]
+    span_trace: Option<tracing_error::SpanTrace>,
+}
+
+fn print_panic_info(report: &PanicReport<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    report.hook.panic_message.display(report.panic_info, f)?;
 
     let v = panic_verbosity();
     let capture_bt = v != Verbosity::Minimal;
 
-    #[cfg(feature = "capture-spantrace")]
-    let span_trace = if hook.spantrace_capture_enabled() {
-        Some(tracing_error::SpanTrace::capture())
-    } else {
-        None
-    };
+    let mut separated = f.header("\n\n");
 
-    let bt = if capture_bt {
-        Some(backtrace::Backtrace::new())
-    } else {
-        None
-    };
-
-    let mut separated = out.header("\n\n");
-
-    if let Some(ref section) = hook.section {
+    if let Some(ref section) = report.hook.section {
         write!(&mut separated.ready(), "{}", section)?;
     }
 
     #[cfg(feature = "capture-spantrace")]
     {
-        if let Some(span_trace) = span_trace.as_ref() {
+        if let Some(span_trace) = report.span_trace.as_ref() {
             write!(
                 &mut separated.ready(),
                 "{}",
@@ -885,8 +866,8 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         }
     }
 
-    if let Some(bt) = bt.as_ref() {
-        let fmted_bt = hook.format_backtrace(&bt);
+    if let Some(bt) = report.backtrace.as_ref() {
+        let fmted_bt = report.hook.format_backtrace(&bt);
         write!(
             indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
             "{}",
@@ -894,11 +875,11 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
         )?;
     }
 
-    if hook.display_env_section {
+    if report.hook.display_env_section {
         let env_section = EnvSection {
             bt_captured: &capture_bt,
             #[cfg(feature = "capture-spantrace")]
-            span_trace: span_trace.as_ref(),
+            span_trace: report.span_trace.as_ref(),
         };
 
         write!(&mut separated.ready(), "{}", env_section)?;
@@ -906,12 +887,12 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
 
     #[cfg(feature = "issue-url")]
     {
-        let payload = printer.0.payload();
+        let payload = report.panic_info.payload();
 
-        if hook.issue_url.is_some()
-            && (*hook.issue_filter)(crate::ErrorKind::NonRecoverable(payload))
+        if report.hook.issue_url.is_some()
+            && (*report.hook.issue_filter)(crate::ErrorKind::NonRecoverable(payload))
         {
-            let url = hook.issue_url.as_ref().unwrap();
+            let url = report.hook.issue_url.as_ref().unwrap();
             let payload = payload
                 .downcast_ref::<String>()
                 .map(String::as_str)
@@ -919,12 +900,12 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
                 .unwrap_or("<non string panic payload>");
 
             let issue_section = crate::section::github::IssueSection::new(url, payload)
-                .with_backtrace(bt.as_ref())
-                .with_location(printer.0.location())
-                .with_metadata(&**hook.issue_metadata);
+                .with_backtrace(report.backtrace.as_ref())
+                .with_location(report.panic_info.location())
+                .with_metadata(&**report.hook.issue_metadata);
 
             #[cfg(feature = "capture-spantrace")]
-            let issue_section = issue_section.with_span_trace(span_trace.as_ref());
+            let issue_section = issue_section.with_span_trace(report.span_trace.as_ref());
 
             write!(&mut separated.ready(), "{}", issue_section)?;
         }
@@ -933,8 +914,15 @@ fn print_panic_info(printer: &PanicPrinter<'_>, out: &mut fmt::Formatter<'_>) ->
     Ok(())
 }
 
-pub(crate) struct PanicHook {
-    filters: Vec<Arc<FilterCallback>>,
+impl<'a, 'b> fmt::Display for PanicReport<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        print_panic_info(self, f)
+    }
+}
+
+/// A panic reporting hook
+pub struct PanicHook {
+    filters: Arc<[Box<FilterCallback>]>,
     section: Option<Box<dyn Display + Send + Sync + 'static>>,
     panic_message: Box<dyn PanicMessage>,
     theme: Theme,
@@ -955,7 +943,7 @@ impl PanicHook {
         trace: &'a backtrace::Backtrace,
     ) -> BacktraceFormatter<'a> {
         BacktraceFormatter {
-            printer: self,
+            filters: &self.filters,
             inner: trace,
             theme: self.theme,
         }
@@ -967,9 +955,56 @@ impl PanicHook {
             .map(|val| val != "0")
             .unwrap_or(self.capture_span_trace_by_default)
     }
+
+    /// Install self as a global panic hook via `std::panic::set_hook`.
+    pub fn install(self) {
+        std::panic::set_hook(self.into_panic_hook());
+    }
+
+    /// Convert self into the type expected by `std::panic::set_hook`.
+    pub fn into_panic_hook(
+        self,
+    ) -> Box<dyn Fn(&std::panic::PanicInfo<'_>) + Send + Sync + 'static> {
+        Box::new(move |panic_info| {
+            eprintln!("{}", self.panic_report(panic_info));
+        })
+    }
+
+    /// Construct a panic reporter which prints it's panic report via the
+    /// `Display` trait.
+    pub fn panic_report<'a>(
+        &'a self,
+        panic_info: &'a std::panic::PanicInfo<'_>,
+    ) -> PanicReport<'a> {
+        let v = panic_verbosity();
+        let capture_bt = v != Verbosity::Minimal;
+
+        #[cfg(feature = "capture-spantrace")]
+        let span_trace = if self.spantrace_capture_enabled() {
+            Some(tracing_error::SpanTrace::capture())
+        } else {
+            None
+        };
+
+        let backtrace = if capture_bt {
+            Some(backtrace::Backtrace::new())
+        } else {
+            None
+        };
+
+        PanicReport {
+            panic_info,
+            #[cfg(feature = "capture-spantrace")]
+            span_trace,
+            backtrace,
+            hook: self,
+        }
+    }
 }
 
-pub(crate) struct EyreHook {
+/// An eyre reporting hook used to construct `EyreHandler`s
+pub struct EyreHook {
+    filters: Arc<[Box<FilterCallback>]>,
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,
@@ -1001,6 +1036,7 @@ impl EyreHook {
         };
 
         crate::Handler {
+            filters: self.filters.clone(),
             backtrace,
             #[cfg(feature = "capture-spantrace")]
             span_trace,
@@ -1024,10 +1060,28 @@ impl EyreHook {
             .map(|val| val != "0")
             .unwrap_or(self.capture_span_trace_by_default)
     }
+
+    /// Installs self as the global eyre handling hook via `eyre::set_hook`
+    pub fn install(self) -> Result<(), crate::eyre::InstallError> {
+        crate::eyre::set_hook(self.into_eyre_hook())
+    }
+
+    /// Convert the self into the boxed type expected by `eyre::set_hook`.
+    pub fn into_eyre_hook(
+        self,
+    ) -> Box<
+        dyn Fn(&(dyn std::error::Error + 'static)) -> Box<dyn eyre::EyreHandler>
+            + Send
+            + Sync
+            + 'static,
+    > {
+        Box::new(move |e| Box::new(self.default(e)))
+    }
 }
 
 pub(crate) struct BacktraceFormatter<'a> {
     printer: &'a PanicHook,
+    filters: &'a [Box<FilterCallback>],
     inner: &'a backtrace::Backtrace,
     theme: Theme,
 }
@@ -1055,7 +1109,7 @@ impl fmt::Display for BacktraceFormatter<'_> {
         match env::var("COLORBT_SHOW_HIDDEN").ok().as_deref() {
             Some("1") | Some("on") | Some("y") => (),
             _ => {
-                for filter in &self.printer.filters {
+                for filter in self.filters {
                     filter(&mut filtered_frames);
                 }
             }
@@ -1111,15 +1165,6 @@ impl fmt::Display for BacktraceFormatter<'_> {
 
         Ok(())
     }
-}
-
-pub(crate) fn installed_hook() -> &'static PanicHook {
-    crate::CONFIG.get_or_init(default_printer)
-}
-
-fn default_printer() -> PanicHook {
-    let (panic_hook, _) = HookBuilder::default().into_hooks();
-    panic_hook
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
