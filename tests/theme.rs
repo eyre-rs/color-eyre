@@ -208,7 +208,7 @@ fn test_backwards_compatibility(target: String, file_name: &str) {
     not(feature = "issue-url")
 ))]
 fn setup() {
-    std::env::set_var("RUST_LIB_BACKTRACE", "full");
+    std::env::set_var("RUST_LIB_BACKTRACE", "1");
 
     #[cfg(feature = "capture-spantrace")]
     {

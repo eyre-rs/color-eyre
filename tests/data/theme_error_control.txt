@@ -11,11 +11,6 @@ Error:
   
    0: [91mtheme[0m[91m::[0m[91mget_error[0m with [96mmsg="test"[0m
       at [35mtests/theme.rs[0m:[35m11[0m
-         9 │ 
-        10 │ #[rustfmt::skip]
-  [37m[1m      11 > #[tracing::instrument][0m
-        12 │ fn get_error(msg: &'static str) -> Report {
-        13 │ 
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [96m                              ⋮ 5 frames hidden ⋮                               [0m
@@ -25,39 +20,14 @@ Error:
       at <unknown source file>
    8: [32mcore::option::Option<T>::ok_or_else[0m[90m::hd4b57a8cb5c1870b[0m
       at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs[0m:[35m558[0m
-       556 │         match self {
-       557 │             Some(v) => Ok(v),
-  [37m[1m     558[0m [37m[1m>[0m [37m[1m            None => Err(err()),[0m
-       559 │         }
-       560 │     }
    9: [91mtheme::get_error[0m[90m::hfc71373d92f563f0[0m
       at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m1[0m
-  [37m[1m       1[0m [37m[1m>[0m [37m[1m// Note: It's recommended, not to change anything above or below (see big comment below)[0m
-         2 │ 
-         3 │ use color_eyre::{eyre::Report, Section};
-         4 │ 
-         5 │ #[rustfmt::skip]
   10: [91mtheme::test_error_backwards_compatibility[0m[90m::h4bf087e5e689a5d0[0m
       at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m36[0m
-        34 │ fn test_error_backwards_compatibility() {
-        35 │     setup();
-  [37m[1m      36[0m [37m[1m>[0m [37m[1m    let error = get_error("test");[0m
-        37 │ 
-        38 │     /*
   11: [91mtheme::test_error_backwards_compatibility::{{closure}}[0m[90m::hf172868901d86cb0[0m
       at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m34[0m
-        32 │     not(feature = "issue-url")
-        33 │ ))]
-  [37m[1m      34[0m [37m[1m>[0m [37m[1mfn test_error_backwards_compatibility() {[0m
-        35 │     setup();
-        36 │     let error = get_error("test");
   12: [32mcore::ops::function::FnOnce::call_once[0m[90m::h9b87751ef643fe90[0m
       at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m227[0m
-       225 │     /// Performs the call operation.
-       226 │     #[unstable(feature = "fn_traits", issue = "29625")]
-  [37m[1m     227[0m [37m[1m>[0m [37m[1m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m
-       228 │ }
-       229 │ 
   13: [32mcore::ops::function::FnOnce::call_once[0m[90m::hb2ff33e91aac5799[0m
       at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/core/src/ops/function.rs[0m:[35m227[0m
   14: [32mtest::__rust_begin_short_backtrace[0m[90m::hc8fd71b19bc78390[0m
@@ -81,3 +51,4 @@ Error:
 [96mSuggestion[0m: suggestion
 
 Run with COLORBT_SHOW_HIDDEN=1 environment variable to disable frame filtering.
+Run with RUST_BACKTRACE=full to include source snippets.

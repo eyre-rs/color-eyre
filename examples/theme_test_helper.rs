@@ -38,7 +38,7 @@ fn main() {
 }
 
 fn setup() {
-    std::env::set_var("RUST_BACKTRACE", "full");
+    std::env::set_var("RUST_BACKTRACE", "1");
 
     #[cfg(feature = "capture-spantrace")]
     {

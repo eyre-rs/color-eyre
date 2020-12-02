@@ -8,28 +8,14 @@ Location: [35mexamples/theme_test_helper.rs[0m:[35m37[0m
   
    0: [91mtheme_test_helper[0m[91m::[0m[91mget_error[0m with [96mmsg="test"[0m
       at [35mexamples/theme_test_helper.rs[0m:[35m34[0m
-        32 │     setup();
-        33 │     let msg = "test";
-  [37m[1m      34 >     let span = tracing::info_span!("get_error", msg);[0m
-        35 │     let _guard = span.enter();
-        36 │     let error = get_error(msg);
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [96m                              ⋮ 6 frames hidden ⋮                               [0m
    7: [91mtheme_test_helper::main[0m[90m::h0f7f307e00efc098[0m
       at [35m/home/jlusby/git/yaahc/color-eyre/examples/theme_test_helper.rs[0m:[35m37[0m
-        35 │     let _guard = span.enter();
-        36 │     let error = get_error(msg);
-  [37m[1m      37[0m [37m[1m>[0m [37m[1m    panic!(error)[0m
-        38 │ }
-        39 │ 
    8: [32mcore::ops::function::FnOnce::call_once[0m[90m::hc90fd75bf8c9f979[0m
       at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m227[0m
-       225 │     /// Performs the call operation.
-       226 │     #[unstable(feature = "fn_traits", issue = "29625")]
-  [37m[1m     227[0m [37m[1m>[0m [37m[1m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m
-       228 │ }
-       229 │ 
   [96m                              ⋮ 11 frames hidden ⋮                              [0m
 
 Run with COLORBT_SHOW_HIDDEN=1 environment variable to disable frame filtering.
+Run with RUST_BACKTRACE=full to include source snippets.

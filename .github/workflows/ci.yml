@@ -42,7 +42,6 @@ jobs:
         with:
           toolchain: stable
           override: true
-          components: rust-src
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -67,7 +66,6 @@ jobs:
           target: ${{ matrix.target }}
           toolchain: ${{ matrix.rust }}
           override: true
-          components: rust-src
       - name: install test runner for wasm
         run:  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
@@ -94,7 +92,6 @@ jobs:
           toolchain: stable
           profile: minimal
           override: true
-          components: rust-src
       - uses: actions-rs/cargo@v1
         with:
           command: test
