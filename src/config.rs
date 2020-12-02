@@ -688,15 +688,6 @@ impl HookBuilder {
 
     /// Install the given Hook as the global error report hook
     pub fn install(self) -> Result<(), crate::eyre::Report> {
-
-        if THEME.set(self.theme).is_err() {
-            Err(InstallThemeError)?
-        }
-
-        if color_spantrace::set_theme(self.theme.into()).is_err() {
-            Err(InstallColorSpantraceThemeError)?
-        }
-
         let (panic_hook, eyre_hook) = self.into_hooks();
         eyre_hook.install()?;
         panic_hook.install();
@@ -743,6 +734,14 @@ impl HookBuilder {
             #[cfg(feature = "issue-url")]
             issue_filter: self.issue_filter,
         };
+
+        if THEME.set(self.theme).is_err() {
+            Err(InstallThemeError)?
+        }
+
+        if color_spantrace::set_theme(self.theme.into()).is_err() {
+            Err(InstallColorSpantraceThemeError)?
+        }
 
         (panic_hook, eyre_hook)
     }
