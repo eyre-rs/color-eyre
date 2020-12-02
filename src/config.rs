@@ -209,22 +209,26 @@ impl<'a> fmt::Display for StyledFrame<'a> {
             && &name[name.len() - 19..name.len() - 16] == "::h"
             && name[name.len() - 16..].chars().all(|x| x.is_digit(16));
 
-        // Print function name.
-
-        if has_hash_suffix {
-            if is_dependency_code {
-                write!(
-                    f,
-                    "{}",
-                    (&name[..name.len() - 19]).style(theme.dependency_code)
-                )?;
-            } else {
-                write!(f, "{}", (&name[..name.len() - 19]).style(theme.crate_code))?;
-            }
-            write!(f, "{}", (&name[name.len() - 19..]).style(theme.code_hash))?;
+        let hash_suffix = if has_hash_suffix {
+            &name[name.len() - 19..]
         } else {
-            write!(f, "{}", name)?;
+            "<unknown>"
+        };
+
+        // Print function name.
+        let name = if has_hash_suffix {
+            &name[..name.len() - 19]
+        } else {
+            name
+        };
+
+        if is_dependency_code {
+            write!(f, "{}", (name).style(theme.dependency_code))?;
+        } else {
+            write!(f, "{}", (name).style(theme.crate_code))?;
         }
+
+        write!(f, "{}", (hash_suffix).style(theme.code_hash))?;
 
         let mut separated = f.header("\n");
 
