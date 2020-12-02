@@ -414,7 +414,7 @@ pub struct HookBuilder {
     capture_span_trace_by_default: bool,
     display_env_section: bool,
     panic_section: Option<Box<dyn Display + Send + Sync + 'static>>,
-    panic_message: Box<dyn PanicMessage>,
+    panic_message: Option<Box<dyn PanicMessage>>,
     theme: Theme,
     #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
@@ -455,7 +455,7 @@ impl HookBuilder {
             capture_span_trace_by_default: false,
             display_env_section: true,
             panic_section: None,
-            panic_message: Box::new(DefaultPanicMessage(Theme::dark())),
+            panic_message: None,
             theme: Theme::dark(),
             #[cfg(feature = "issue-url")]
             issue_url: None,
@@ -543,7 +543,7 @@ impl HookBuilder {
     /// }
     /// ```
     pub fn panic_message<S: PanicMessage>(mut self, section: S) -> Self {
-        self.panic_message = Box::new(section);
+        self.panic_message = Some(Box::new(section));
         self
     }
 
@@ -692,6 +692,7 @@ impl HookBuilder {
     /// Create a `PanicHook` and `EyreHook` from this `HookBuilder`.
     /// This can be used if you want to combine these handlers with other handlers.
     pub fn into_hooks(self) -> (PanicHook, EyreHook) {
+        let theme = self.theme;
         #[cfg(feature = "issue-url")]
         let metadata = Arc::new(self.issue_metadata);
         let panic_hook = PanicHook {
@@ -700,8 +701,10 @@ impl HookBuilder {
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
-            panic_message: self.panic_message,
-            theme: self.theme,
+            panic_message: self
+                .panic_message
+                .unwrap_or_else(|| Box::new(DefaultPanicMessage(theme))),
+            theme,
             #[cfg(feature = "issue-url")]
             issue_url: self.issue_url.clone(),
             #[cfg(feature = "issue-url")]
@@ -715,7 +718,7 @@ impl HookBuilder {
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
             display_env_section: self.display_env_section,
-            theme: self.theme,
+            theme,
             #[cfg(feature = "issue-url")]
             issue_url: self.issue_url,
             #[cfg(feature = "issue-url")]
