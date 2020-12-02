@@ -1,4 +1,4 @@
-[0m    Finished dev [unoptimized + debuginfo] target(s) in 0.05s
+    Finished dev [unoptimized + debuginfo] target(s) in 0.05s
      Running `target/debug/examples/theme_test_helper`
 [31mThe application panicked (crashed).[0m
 Message:  [36m<non string panic payload>[0m
