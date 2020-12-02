@@ -26,7 +26,11 @@ fn get_error(msg: &'static str) -> Report {
 }
 
 #[test]
-#[cfg(all(feature = "capture-spantrace", feature = "track-caller"))]
+#[cfg(all(
+    feature = "capture-spantrace",
+    feature = "track-caller",
+    not(feature = "issue-url")
+))]
 fn test_error_backwards_compatibility() {
     setup();
     let error = get_error("test");
@@ -83,9 +87,13 @@ fn test_error_backwards_compatibility() {
 
 // The following tests the installed panic handler
 #[test]
-#[cfg(all(feature = "capture-spantrace", feature = "track-caller"))]
+#[cfg(all(
+    feature = "capture-spantrace",
+    feature = "track-caller",
+    not(feature = "issue-url")
+))]
 fn test_panic_backwards_compatibility() {
-    let output = Command::new("cargo")
+    let output = std::process::Command::new("cargo")
         .args(&["run", "--example", "theme_test_helper"])
         .output()
         .expect("failed to execute process");
@@ -94,12 +102,17 @@ fn test_panic_backwards_compatibility() {
     test_backwards_compatibility(target, file_name)
 }
 
-use ansi_parser::{AnsiParser, AnsiSequence, Output};
-use owo_colors::OwoColorize;
-use std::{fs, path::Path, process::Command};
-
 /// Helper for `test_error` and `test_panic`
+#[cfg(all(
+    feature = "capture-spantrace",
+    feature = "track-caller",
+    not(feature = "issue-url")
+))]
 fn test_backwards_compatibility(target: String, file_name: &str) {
+    use ansi_parser::{AnsiParser, AnsiSequence, Output};
+    use owo_colors::OwoColorize;
+    use std::{fs, path::Path};
+
     let file_path = ["tests/data/", file_name].concat();
 
     // If `file_path` is missing, save corresponding file to current working directory, and panic with the request to move the file to `file_path`, and to commit it to Git. Being explicit (instead of saving directly to `file_path`) to make sure `file_path` is committed to Git.
@@ -189,6 +202,11 @@ fn test_backwards_compatibility(target: String, file_name: &str) {
     */
 }
 
+#[cfg(all(
+    feature = "capture-spantrace",
+    feature = "track-caller",
+    not(feature = "issue-url")
+))]
 fn setup() {
     std::env::set_var("RUST_LIB_BACKTRACE", "full");
 
