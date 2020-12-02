@@ -83,7 +83,7 @@ fn test_error_backwards_compatibility() {
 
 // The following tests the installed panic handler
 #[test]
-// #[cfg(all(feature = "capture-spantrace", feature = "track-caller"))]
+#[cfg(all(feature = "capture-spantrace", feature = "track-caller"))]
 fn test_panic_backwards_compatibility() {
     let output = Command::new("cargo")
         .args(&["run", "--example", "theme_test_helper"])
