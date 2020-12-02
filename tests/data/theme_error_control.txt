@@ -1,67 +1,79 @@
 
    0: [91mtest[0m
 
+Location:
+   [35mtests/theme.rs[0m:[35m1[0m
+
 Error:
    0: [91merror[0m
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   
-   0: [38;5;9mstyles[0m[38;5;9m::[0m[38;5;9mget_error[0m with [38;5;14mmsg="test"[0m
-      at [35mcolor-eyre/tests/styles.rs[0m:[35m16[0m
+   0: [91mtheme[0m[91m::[0m[91mget_error[0m with [96mmsg="test"[0m
+      at [35mtests/theme.rs[0m:[35m16[0m
+        14 │ 
+        15 │ #[rustfmt::skip]
+  [37m[1m      16 > #[tracing::instrument][0m
+        17 │ fn get_error(msg: &'static str) -> Report {
+        18 │ 
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [96m                              ⋮ 5 frames hidden ⋮                               [0m
-   6: [91mstyles::get_error::create_report[0m[90m::he02cdde77ebcb3bb[0m
+   6: [91mtheme::get_error::create_report[0m[90m::he2f553bfa12af0be[0m
       at <unknown source file>
-   7: [91mstyles::get_error::{{closure}}[0m[90m::h5d58e562328c2486[0m
+   7: [91mtheme::get_error::{{closure}}[0m[90m::he4680b6a2a40253e[0m
       at <unknown source file>
-   8: [32mcore::option::Option<T>::ok_or_else[0m[90m::h596311135bd4c55d[0m
-      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libcore/option.rs[0m:[35m563[0m
-       561 │         match self {
-       562 │             Some(v) => Ok(v),
-  [37m[1m     563[0m [37m[1m>[0m [37m[1m            None => Err(err()),[0m
-       564 │         }
-       565 │     }
-   9: [91mstyles::get_error[0m[90m::h6449790a47e8824f[0m
-      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/styles.rs[0m:[35m1[0m
+   8: [32mcore::option::Option<T>::ok_or_else[0m[90m::h183da4dca2bab825[0m
+      at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs[0m:[35m558[0m
+       556 │         match self {
+       557 │             Some(v) => Ok(v),
+  [37m[1m     558[0m [37m[1m>[0m [37m[1m            None => Err(err()),[0m
+       559 │         }
+       560 │     }
+   9: [91mtheme::get_error[0m[90m::h202d6bdb8d51aae6[0m
+      at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m1[0m
   [37m[1m       1[0m [37m[1m>[0m [37m[1m[0m
          2 │ 
          3 │ 
          4 │ 
          5 │ 
-  10: [91mstyles::test_error_backwards_compatibility[0m[90m::h0c73336ab37f0b4a[0m
-      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/styles.rs[0m:[35m166[0m
-       164 │ fn test_error_backwards_compatibility(){
-       165 │     setup();
-  [37m[1m     166[0m [37m[1m>[0m [37m[1m    let error = get_error("test");[0m
-       167 │ 
-       168 │ 
-  11: [91mstyles::test_error_backwards_compatibility::{{closure}}[0m[90m::h87b8ac297f9048ca[0m
-      at [35m/home/dh/projects/rust-ssg/color-eyre/tests/styles.rs[0m:[35m164[0m
-       162 │ 
-       163 │ #[test]
-  [37m[1m     164[0m [37m[1m>[0m [37m[1mfn test_error_backwards_compatibility(){[0m
-       165 │     setup();
-       166 │     let error = get_error("test");
-  12: [32mcore::ops::function::FnOnce::call_once[0m[90m::hc8bedf7357b15e92[0m
-      at [35m/home/dh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libcore/ops/function.rs[0m:[35m233[0m
-       231 │     /// Performs the call operation.
-       232 │     #[unstable(feature = "fn_traits", issue = "29625")]
-  [37m[1m     233[0m [37m[1m>[0m [37m[1m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m
-       234 │ }
-       235 │ 
-  13: [32m<alloc::boxed::Box<F> as core::ops::function::FnOnce<A>>::call_once[0m[90m::h6633cb15d0d76942[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/liballoc/boxed.rs[0m:[35m1081[0m
-  14: [32m<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once[0m[90m::h1e20120def172c5c[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panic.rs[0m:[35m318[0m
-  15: [32mstd::panicking::try::do_call[0m[90m::hcc2ec3bbb75e9316[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs[0m:[35m348[0m
-  16: [32mstd::panicking::try[0m[90m::h94eaebaaa7dd6f41[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs[0m:[35m325[0m
-  17: [32mstd::panic::catch_unwind[0m[90m::h151c07c08497cf8b[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panic.rs[0m:[35m394[0m
-  18: [32mtest::run_test_in_process[0m[90m::hd082de93b1922c89[0m
-      at [35m/rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libtest/lib.rs[0m:[35m541[0m
+  10: [91mtheme::test_error_backwards_compatibility[0m[90m::heacab9b13bd35568[0m
+      at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m36[0m
+        34 │ fn test_error_backwards_compatibility(){
+        35 │     setup();
+  [37m[1m      36[0m [37m[1m>[0m [37m[1m    let error = get_error("test");[0m
+        37 │ 
+        38 │ 
+  11: [91mtheme::test_error_backwards_compatibility::{{closure}}[0m[90m::h74c957626b93f722[0m
+      at [35m/home/jlusby/git/yaahc/color-eyre/tests/theme.rs[0m:[35m34[0m
+        32 │ 
+        33 │ #[test]
+  [37m[1m      34[0m [37m[1m>[0m [37m[1mfn test_error_backwards_compatibility(){[0m
+        35 │     setup();
+        36 │     let error = get_error("test");
+  12: [32mcore::ops::function::FnOnce::call_once[0m[90m::h6edd2677d7946372[0m
+      at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs[0m:[35m227[0m
+       225 │     /// Performs the call operation.
+       226 │     #[unstable(feature = "fn_traits", issue = "29625")]
+  [37m[1m     227[0m [37m[1m>[0m [37m[1m    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;[0m
+       228 │ }
+       229 │ 
+  13: [32mcore::ops::function::FnOnce::call_once[0m[90m::hb2ff33e91aac5799[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/core/src/ops/function.rs[0m:[35m227[0m
+  14: [32mtest::__rust_begin_short_backtrace[0m[90m::hc8fd71b19bc78390[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/test/src/lib.rs[0m:[35m516[0m
+  15: [32m<alloc::boxed::Box<F> as core::ops::function::FnOnce<A>>::call_once[0m[90m::hb8ab4b7e0de41b66[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/alloc/src/boxed.rs[0m:[35m1042[0m
+  16: [32m<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once[0m[90m::hc48829c2ba8b55d6[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/std/src/panic.rs[0m:[35m308[0m
+  17: [32mstd::panicking::try::do_call[0m[90m::h95feedb4d9e8dd5b[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/std/src/panicking.rs[0m:[35m381[0m
+  18: [32mstd::panicking::try[0m[90m::hc4c23f5f7d3bdd43[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/std/src/panicking.rs[0m:[35m345[0m
+  19: [32mstd::panic::catch_unwind[0m[90m::hf3a57d903cc5007a[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/std/src/panic.rs[0m:[35m382[0m
+  20: [32mtest::run_test_in_process[0m[90m::h09c598ed2a1f6695[0m
+      at [35m/rustc/7eac88abb2e57e752f3302f02be5f3ce3d7adfb4/library/test/src/lib.rs[0m:[35m543[0m
   [96m                              ⋮ 14 frames hidden ⋮                              [0m
 
 [96mNote[0m: note
