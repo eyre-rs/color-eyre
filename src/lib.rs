@@ -368,6 +368,7 @@ pub use eyre;
 pub use eyre::Report;
 #[doc(hidden)]
 pub use eyre::Result;
+pub use owo_colors;
 use section::help::HelpInfo;
 #[doc(hidden)]
 pub use section::Section as Help;
@@ -376,8 +377,6 @@ pub use section::{IndentedSection, Section, SectionExt};
 use tracing_error::SpanTrace;
 #[doc(hidden)]
 pub use Handler as Context;
-pub use owo_colors;
-
 
 pub mod config;
 mod fmt;

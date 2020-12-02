@@ -6,13 +6,10 @@ use crate::{
 };
 use fmt::Display;
 use indenter::{indented, Format};
-use once_cell::sync::OnceCell;
-use owo_colors::{style, Style, OwoColorize};
+use owo_colors::{style, OwoColorize, Style};
 use std::env;
 use std::fmt::Write as _;
 use std::{fmt, path::PathBuf, sync::Arc};
-
-pub(crate) static THEME: OnceCell<Theme> = OnceCell::new();
 
 #[derive(Debug)]
 struct InstallError;
@@ -222,17 +219,9 @@ impl<'a> fmt::Display for StyledFrame<'a> {
                     (&name[..name.len() - 19]).style(theme.dependency_code)
                 )?;
             } else {
-                write!(
-                    f,
-                    "{}",
-                    (&name[..name.len() - 19]).style(theme.crate_code)
-                )?;
+                write!(f, "{}", (&name[..name.len() - 19]).style(theme.crate_code))?;
             }
-            write!(
-                f,
-                "{}",
-                (&name[name.len() - 19..]).style(theme.code_hash)
-            )?;
+            write!(f, "{}", (&name[name.len() - 19..]).style(theme.code_hash))?;
         } else {
             write!(f, "{}", name)?;
         }
@@ -466,7 +455,7 @@ impl HookBuilder {
             capture_span_trace_by_default: false,
             display_env_section: true,
             panic_section: None,
-            panic_message: Box::new(DefaultPanicMessage),
+            panic_message: Box::new(DefaultPanicMessage(Theme::dark())),
             theme: Theme::dark(),
             #[cfg(feature = "issue-url")]
             issue_url: None,
@@ -735,13 +724,7 @@ impl HookBuilder {
             issue_filter: self.issue_filter,
         };
 
-        if THEME.set(self.theme).is_err() {
-            Err(InstallThemeError)?
-        }
-
-        if color_spantrace::set_theme(self.theme.into()).is_err() {
-            Err(InstallColorSpantraceThemeError)?
-        }
+        color_spantrace::set_theme(self.theme.into()).expect("could not set the provided `Theme` via `color_spantrace::set_theme` globally as another was already set");
 
         (panic_hook, eyre_hook)
     }
@@ -801,12 +784,12 @@ fn eyre_frame_filters(frames: &mut Vec<&Frame>) {
     });
 }
 
-struct DefaultPanicMessage;
+struct DefaultPanicMessage(Theme);
 
 impl PanicMessage for DefaultPanicMessage {
     fn display(&self, pi: &std::panic::PanicInfo<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // XXX is my assumption correct that this function is guaranteed to only run after `color_eyre` was setup successfully (including setting `THEME`), and that therefore the following line will never panic? Otherwise, we could return `fmt::Error`, but if the above is true, I like `unwrap` + a comment why this never fails better
-        let theme = crate::config::THEME.get().unwrap();
+        let theme = &self.0;
 
         writeln!(
             f,
@@ -1079,10 +1062,9 @@ impl EyreHook {
 }
 
 pub(crate) struct BacktraceFormatter<'a> {
-    printer: &'a PanicHook,
-    filters: &'a [Box<FilterCallback>],
-    inner: &'a backtrace::Backtrace,
-    theme: Theme,
+    pub(crate) filters: &'a [Box<FilterCallback>],
+    pub(crate) inner: &'a backtrace::Backtrace,
+    pub(crate) theme: Theme,
 }
 
 impl fmt::Display for BacktraceFormatter<'_> {

@@ -1,4 +1,3 @@
-
 //! Nothing interesting here. This is just a small helper used in a test.
 
 //! This needs to be an "example" until binaries can declare separate dependencies (see https://github.com/rust-lang/cargo/issues/1982)
@@ -33,7 +32,7 @@ fn get_error(msg: &'static str) -> Report {
     None::<Option<()>>.ok_or_else(|| create_report(msg)).unwrap_err()
 }
 
-fn main(){
+fn main() {
     setup();
     let error = get_error("test");
     panic!(error)

@@ -3,7 +3,10 @@ use std::fmt;
 
 use owo_colors::OwoColorize;
 
-pub(crate) struct LocationSection<'a>(pub(crate) Option<&'a std::panic::Location<'a>>, pub(crate) crate::config::Theme);
+pub(crate) struct LocationSection<'a>(
+    pub(crate) Option<&'a std::panic::Location<'a>>,
+    pub(crate) crate::config::Theme,
+);
 
 impl fmt::Display for LocationSection<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

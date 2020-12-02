@@ -36,6 +36,7 @@ impl Handler {
         BacktraceFormatter {
             filters: &self.filters,
             inner: trace,
+            theme: self.theme,
         }
     }
 }
@@ -71,13 +72,16 @@ impl eyre::EyreHandler for Handler {
         write!(
             separated.ready(),
             "{}",
-            crate::SectionExt::header(crate::fmt::LocationSection(self.location, self.theme), "Location:")
+            crate::SectionExt::header(
+                crate::fmt::LocationSection(self.location, self.theme),
+                "Location:"
+            )
         )?;
 
         for section in self
             .sections
             .iter()
-            .filter(|s| matches!(s, HelpInfo::Error(_)))
+            .filter(|s| matches!(s, HelpInfo::Error(_, _)))
         {
             write!(separated.ready(), "{}", section)?;
         }
@@ -124,7 +128,7 @@ impl eyre::EyreHandler for Handler {
         for section in self
             .sections
             .iter()
-            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
+            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_, _)))
         {
             write!(&mut f, "{}", section)?;
             f = h.ready();
