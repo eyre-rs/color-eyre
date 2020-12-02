@@ -724,6 +724,7 @@ impl HookBuilder {
             issue_filter: self.issue_filter,
         };
 
+        #[cfg(feature = "capture-spantrace")]
         color_spantrace::set_theme(self.theme.into()).expect("could not set the provided `Theme` via `color_spantrace::set_theme` globally as another was already set");
 
         (panic_hook, eyre_hook)
