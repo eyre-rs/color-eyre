@@ -731,6 +731,7 @@ impl HookBuilder {
     }
 }
 
+#[cfg(feature = "capture-spantrace")]
 impl From<Theme> for color_spantrace::Theme {
     fn from(src: Theme) -> color_spantrace::Theme {
         color_spantrace::Theme::new()

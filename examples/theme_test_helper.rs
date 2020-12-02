@@ -5,9 +5,6 @@
 //! See "tests/theme.rs" for more information.
 
 use color_eyre::{eyre::Report, Section};
-use tracing_error::ErrorLayer;
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::{fmt, EnvFilter};
 
 #[rustfmt::skip]
 #[derive(Debug, thiserror::Error)]
@@ -15,7 +12,6 @@ use tracing_subscriber::{fmt, EnvFilter};
 struct TestError(&'static str);
 
 #[rustfmt::skip]
-#[tracing::instrument]
 fn get_error(msg: &'static str) -> Report {
 
     #[rustfmt::skip]
@@ -34,23 +30,32 @@ fn get_error(msg: &'static str) -> Report {
 
 fn main() {
     setup();
-    let error = get_error("test");
+    let msg = "test";
+    let span = tracing::info_span!("get_error", msg);
+    let _guard = span.enter();
+    let error = get_error(msg);
     panic!(error)
 }
 
 fn setup() {
-    std::env::set_var("RUST_LIB_BACKTRACE", "full");
+    std::env::set_var("RUST_BACKTRACE", "full");
 
-    let fmt_layer = fmt::layer().with_target(false);
-    let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap();
+    #[cfg(feature = "capture-spantrace")]
+    {
+        use tracing_subscriber::prelude::*;
+        use tracing_subscriber::{fmt, EnvFilter};
 
-    tracing_subscriber::registry()
-        .with(filter_layer)
-        .with(fmt_layer)
-        .with(ErrorLayer::default())
-        .init();
+        let fmt_layer = fmt::layer().with_target(false);
+        let filter_layer = EnvFilter::try_from_default_env()
+            .or_else(|_| EnvFilter::try_new("info"))
+            .unwrap();
+
+        tracing_subscriber::registry()
+            .with(filter_layer)
+            .with(fmt_layer)
+            .with(tracing_error::ErrorLayer::default())
+            .init();
+    }
 
     color_eyre::install().expect("Failed to install `color_eyre`");
 }
