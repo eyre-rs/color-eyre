@@ -229,20 +229,21 @@ impl<'a> fmt::Display for StyledFrame<'a> {
         let mut separated = f.header("\n");
 
         // Print source location, if known.
-        if let Some(ref file) = frame.filename {
-            let filestr = file.to_str().unwrap_or("<bad utf8>");
-            let lineno = frame
-                .lineno
-                .map_or("<unknown line>".to_owned(), |x| x.to_string());
-            write!(
-                &mut separated.ready(),
-                "    at {}:{}",
-                filestr.style(theme.file),
-                lineno.style(theme.line_number),
-            )?;
+        let file = frame.filename.as_ref().map(|path| path.display());
+        let file: &dyn fmt::Display = if let Some(ref filename) = file {
+            filename
         } else {
-            write!(&mut separated.ready(), "    at <unknown source file>")?;
-        }
+            &"<unknown source file>"
+        };
+        let lineno = frame
+            .lineno
+            .map_or("<unknown line>".to_owned(), |x| x.to_string());
+        write!(
+            &mut separated.ready(),
+            "    at {}:{}",
+            file.style(theme.file),
+            lineno.style(theme.line_number),
+        )?;
 
         let v = if std::thread::panicking() {
             panic_verbosity()

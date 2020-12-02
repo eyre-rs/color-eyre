@@ -15,9 +15,9 @@ Error:
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ BACKTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   [96m                              ⋮ 5 frames hidden ⋮                               [0m
    6: [91mtheme::get_error::create_report[0m[90m::h982c27931cc8e4b1[0m
-      at <unknown source file>
+      at [35m<unknown source file>[0m:[35m<unknown line>[0m
    7: [91mtheme::get_error::{{closure}}[0m[90m::hae775e99e0b7d1c5[0m
-      at <unknown source file>
+      at [35m<unknown source file>[0m:[35m<unknown line>[0m
    8: [32mcore::option::Option<T>::ok_or_else[0m[90m::hd4b57a8cb5c1870b[0m
       at [35m/home/jlusby/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs[0m:[35m558[0m
    9: [91mtheme::get_error[0m[90m::hfc71373d92f563f0[0m
