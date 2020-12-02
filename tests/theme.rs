@@ -26,11 +26,6 @@ fn get_error(msg: &'static str) -> Report {
 }
 
 #[test]
-#[cfg(all(
-    feature = "capture-spantrace",
-    feature = "track-caller",
-    not(feature = "issue-url")
-))]
 fn test_error_backwards_compatibility() {
     setup();
     let error = get_error("test");
@@ -87,11 +82,6 @@ fn test_error_backwards_compatibility() {
 
 // The following tests the installed panic handler
 #[test]
-#[cfg(all(
-    feature = "capture-spantrace",
-    feature = "track-caller",
-    not(feature = "issue-url")
-))]
 fn test_panic_backwards_compatibility() {
     let output = std::process::Command::new("cargo")
         .args(&["run", "--example", "theme_test_helper"])
@@ -103,11 +93,6 @@ fn test_panic_backwards_compatibility() {
 }
 
 /// Helper for `test_error` and `test_panic`
-#[cfg(all(
-    feature = "capture-spantrace",
-    feature = "track-caller",
-    not(feature = "issue-url")
-))]
 fn test_backwards_compatibility(target: String, file_name: &str) {
     use ansi_parser::{AnsiParser, AnsiSequence, Output};
     use owo_colors::OwoColorize;
@@ -202,11 +187,6 @@ fn test_backwards_compatibility(target: String, file_name: &str) {
     */
 }
 
-#[cfg(all(
-    feature = "capture-spantrace",
-    feature = "track-caller",
-    not(feature = "issue-url")
-))]
 fn setup() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 
