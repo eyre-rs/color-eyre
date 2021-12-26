@@ -160,7 +160,7 @@ fn test_backwards_compatibility(target: String, file_name: &str) {
             })
             .collect();
         (all, ansi)
-    };
+    }
 
     let (_control_tokens, control_ansi) = f(&control);
     let (_target_tokens, target_ansi) = f(&target);
