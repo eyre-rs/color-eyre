@@ -2,9 +2,12 @@
 use crate::writers::WriterExt;
 use std::fmt::{self, Display};
 
+pub(crate) mod context_from;
 #[cfg(feature = "issue-url")]
 pub(crate) mod github;
 pub(crate) mod help;
+
+pub use context_from::ContextFrom;
 
 /// An indented section with a header for an error report
 ///
