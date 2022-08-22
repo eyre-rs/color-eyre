@@ -467,11 +467,11 @@ pub enum ErrorKind<'a> {
 /// use once_cell::sync::OnceCell;
 /// pub struct ColorEyreGuard(());
 /// static INIT_COLOR_EYRE: OnceCell<ColorEyreGuard> = OnceCell::new();
-
+///
 /// pub fn init_color_eyre() {
 ///     INIT_COLOR_EYRE.get_or_init(|| {
 ///         color_eyre::install().expect("Failed to initialize color_eyre");
-///     ColorEyreGuard(())
+///         ColorEyreGuard(())
 ///     });
 /// }
 /// ```

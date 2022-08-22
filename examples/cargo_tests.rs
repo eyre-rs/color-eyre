@@ -1,7 +1,7 @@
 //!
 //! Try it out with cargo test --example cargo_tests -- --nocapture
 
-use color_eyre::{eyre::Result};
+use color_eyre::eyre::Result;
 use eyre::bail;
 use tracing::{info, instrument};
 
@@ -38,7 +38,7 @@ mod tests {
                 if std::env::var("RUST_SPANTRACE").is_err() {
                     std::env::set_var("RUST_SPANTRACE", "0");
                 }
-                // Run with RUST_BACKTRACE=1 to see the backtrace. 
+                // Run with RUST_BACKTRACE=1 to see the backtrace.
                 if std::env::var("RUST_BACKTRACE").is_err() {
                     std::env::set_var("RUST_BACKTRACE", "0");
                 }
@@ -66,5 +66,4 @@ mod tests {
         do_some_work_badly().unwrap();
         assert!(true);
     }
-
 }
