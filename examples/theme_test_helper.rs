@@ -1,6 +1,6 @@
 //! Nothing interesting here. This is just a small helper used in a test.
 
-//! This needs to be an "example" until binaries can declare separate dependencies (see https://github.com/rust-lang/cargo/issues/1982)
+//! This needs to be an "example" until binaries can declare separate dependencies (see <https://github.com/rust-lang/cargo/issues/1982>)
 
 //! See "tests/theme.rs" for more information.
 
