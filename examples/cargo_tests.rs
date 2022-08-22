@@ -3,21 +3,20 @@
 
 use color_eyre::eyre::Result;
 use eyre::bail;
-use tracing::{info, instrument};
+use tracing::info;
 
-#[instrument]
 fn do_some_work_well() -> Result<()> {
     info!("Doing some work.");
     Ok(())
 }
 
-#[instrument]
 fn do_some_work_badly() -> Result<()> {
     bail!("Something went wrong")
 }
 
 fn main() -> Result<()> {
     do_some_work_well()?;
+    do_some_work_badly()?;
     Ok(())
 }
 
