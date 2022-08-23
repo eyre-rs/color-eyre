@@ -30,8 +30,6 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    // cargo test --example cargo_tests -- --nocapture
-    // put mod somewhere accessible so that it can be used elsewhere.
     pub mod some_common_spot {
         use once_cell::sync::OnceCell;
 
@@ -68,8 +66,14 @@ mod tests {
         assert!(true);
     }
 
+    /// ## Ctor Method 
+    /// You can run the tests below with the following command:
+    /// ```rust
+    /// RUSTFLAGS="--cfg with_ctor" cargo test --example cargo_tests -- --nocapture 
+    /// ```
     #[cfg(with_ctor)]
     #[test]
+    #[should_panic(expected = "Something went wrong")]
     fn no_need_to_call_init_color_eyre() {
         // do not have to call some_common_spot::init_color_eyre();
         do_some_work_badly().unwrap();
@@ -78,8 +82,17 @@ mod tests {
 
     #[cfg(with_ctor)]
     #[ctor::ctor]
+    /// Initializes color_eyre the tests run.
+    /// Note that this approach assumes that other constructors that
+    /// may panic, would still use the method above to initialize color_eyre
+    /// because the order in which constructors execute is random.
+    /// Which is why we still use the OnceCell guard.
+    /// If you are certain that no other constructor is interested in 
+    /// initializing color_eyre, you simply call the color_eyre::install() 
+    /// directly, and then remove the OnceCell guard.
     fn __init_color_eyre_ctor() {
         some_common_spot::init_color_eyre();
     }
+
 
 }
