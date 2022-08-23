@@ -19,6 +19,12 @@ fn main() -> Result<()> {
     do_some_work_badly()?;
     Ok(())
 }
+/// # Introduction 
+/// The following module requires copying the init_color_eyre() to every test
+/// function that uses it. This is a bit of a pain, but it's not a big deal.
+/// However, if you wanted to avoid it you could use the
+/// [ctor crate method](#ctor-method) below .
+
 
 #[cfg(test)]
 mod tests {
@@ -52,17 +58,28 @@ mod tests {
         }
     }
 
+
     #[test]
+    #[should_panic]
     fn test_eyre_init() {
+        #[cfg(not(with_ctor))]
         some_common_spot::init_color_eyre();
         do_some_work_badly().unwrap();
         assert!(true);
     }
 
+    #[cfg(with_ctor)]
     #[test]
-    fn test_without_colors_work_as_is() {
-        some_common_spot::init_color_eyre();
+    fn no_need_to_call_init_color_eyre() {
+        // do not have to call some_common_spot::init_color_eyre();
         do_some_work_badly().unwrap();
         assert!(true);
     }
+
+    #[cfg(with_ctor)]
+    #[ctor::ctor]
+    fn __init_color_eyre_ctor() {
+        some_common_spot::init_color_eyre();
+    }
+
 }
