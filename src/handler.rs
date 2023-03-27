@@ -104,12 +104,14 @@ impl eyre::EyreHandler for Handler {
 
         #[cfg(feature = "capture-spantrace")]
         {
-            if let Some(span_trace) = span_trace {
-                write!(
-                    &mut separated.ready(),
-                    "{}",
-                    crate::writers::FormattedSpanTrace(span_trace)
-                )?;
+            if !self.suppress_span_trace {
+                if let Some(span_trace) = span_trace {
+                    write!(
+                        &mut separated.ready(),
+                        "{}",
+                        crate::writers::FormattedSpanTrace(span_trace)
+                    )?;
+                }
             }
         }
 
