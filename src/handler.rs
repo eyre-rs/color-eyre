@@ -22,11 +22,35 @@ impl Handler {
         self.backtrace.as_ref()
     }
 
+    /// Return a mutable reference to the captured `Backtrace` type
+    pub fn backtrace_mut(&mut self) -> Option<&mut Backtrace> {
+        self.backtrace.as_mut()
+    }
+
+    /// Remove the captured `Backtrace` if present.
+    pub fn clear_backtrace(&mut self) {
+        self.backtrace = None;
+    }
+
     /// Return a reference to the captured `SpanTrace` type
     #[cfg(feature = "capture-spantrace")]
     #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         self.span_trace.as_ref()
+    }
+
+    /// Return a mutable reference to the captured `SpanTrace` type
+    #[cfg(feature = "capture-spantrace")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
+    pub fn span_trace_mut(&mut self) -> Option<&mut SpanTrace> {
+        self.span_trace.as_mut()
+    }
+
+    /// Remove the captured `SpanTrace` if present.
+    #[cfg(feature = "capture-spantrace")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
+    pub fn clear_span_trace(&mut self) {
+        self.span_trace = None;
     }
 
     pub(crate) fn format_backtrace<'a>(
