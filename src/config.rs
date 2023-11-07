@@ -416,6 +416,15 @@ impl Frame {
     }
 }
 
+/// Error chain list formatting style
+#[derive(Debug, Clone, Copy)]
+pub enum ListStyle {
+    /// Numerically number lists
+    Numbered,
+    /// Prefix a string to each list item
+    Prefix(&'static str),
+}
+
 /// Builder for customizing the behavior of the global panic and error report hooks
 pub struct HookBuilder {
     filters: Vec<Box<FilterCallback>>,
@@ -426,6 +435,7 @@ pub struct HookBuilder {
     panic_section: Option<Box<dyn Display + Send + Sync + 'static>>,
     panic_message: Option<Box<dyn PanicMessage>>,
     theme: Theme,
+    list_style: ListStyle,
     #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
     #[cfg(feature = "issue-url")]
@@ -469,6 +479,7 @@ impl HookBuilder {
             panic_section: None,
             panic_message: None,
             theme: Theme::dark(),
+            list_style: ListStyle::Numbered,
             #[cfg(feature = "issue-url")]
             issue_url: None,
             #[cfg(feature = "issue-url")]
@@ -483,6 +494,12 @@ impl HookBuilder {
     /// **Tip:** You can test new styles by editing `examples/theme.rs` in the `color-eyre` repository.
     pub fn theme(mut self, theme: Theme) -> Self {
         self.theme = theme;
+        self
+    }
+
+    /// Set the style to use for formatting error chain lists
+    pub fn list_style(mut self, style: ListStyle) -> Self {
+        self.list_style = style;
         self
     }
 
@@ -735,6 +752,7 @@ impl HookBuilder {
                 .panic_message
                 .unwrap_or_else(|| Box::new(DefaultPanicMessage(theme))),
             theme,
+            list_style: self.list_style,
             #[cfg(feature = "issue-url")]
             issue_url: self.issue_url.clone(),
             #[cfg(feature = "issue-url")]
@@ -751,6 +769,7 @@ impl HookBuilder {
             #[cfg(feature = "track-caller")]
             display_location_section: self.display_location_section,
             theme,
+            list_style: self.list_style,
             #[cfg(feature = "issue-url")]
             issue_url: self.issue_url,
             #[cfg(feature = "issue-url")]
@@ -945,6 +964,7 @@ pub struct PanicHook {
     section: Option<Box<dyn Display + Send + Sync + 'static>>,
     panic_message: Box<dyn PanicMessage>,
     theme: Theme,
+    list_style: ListStyle,
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
     display_env_section: bool,
@@ -1030,6 +1050,7 @@ pub struct EyreHook {
     #[cfg(feature = "track-caller")]
     display_location_section: bool,
     theme: Theme,
+    list_style: ListStyle,
     #[cfg(feature = "issue-url")]
     issue_url: Option<String>,
     #[cfg(feature = "issue-url")]
@@ -1071,6 +1092,7 @@ impl EyreHook {
             span_trace,
             sections: Vec::new(),
             display_env_section: self.display_env_section,
+            list_style: self.list_style,
             #[cfg(feature = "track-caller")]
             display_location_section: self.display_location_section,
             #[cfg(feature = "issue-url")]

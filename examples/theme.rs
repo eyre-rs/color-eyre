@@ -1,4 +1,9 @@
-use color_eyre::{config::Theme, eyre::Report, owo_colors::style, Section};
+use color_eyre::{
+    config::{ListStyle, Theme},
+    eyre::Report,
+    owo_colors::style,
+    Section,
+};
 
 /// To experiment with theme values, edit `theme()` below and execute `cargo run --example theme`
 fn theme() -> Theme {
@@ -16,11 +21,13 @@ struct TestError(&'static str);
 #[tracing::instrument]
 fn get_error(msg: &'static str) -> Report {
     fn create_report(msg: &'static str) -> Report {
-        Report::msg(msg)
-            .note("note")
-            .warning("warning")
-            .suggestion("suggestion")
-            .error(TestError("error"))
+        let root = Report::msg(msg)
+            .note("I left a note")
+            .warning("this is a warning")
+            .suggestion("and a suggestion")
+            .error(TestError("error"));
+
+        root.wrap_err("wrapping error")
     }
 
     // Using `Option` to add dependency code. See https://github.com/yaahc/color-eyre/blob/4ddaeb2126ed8b14e4e6aa03d7eef49eb8561cf0/src/config.rs#L56
@@ -56,6 +63,7 @@ fn setup() {
 
     color_eyre::config::HookBuilder::new()
         .theme(theme())
+        .list_style(ListStyle::Prefix("-"))
         .install()
         .expect("Failed to install `color_eyre`");
 }

@@ -1,5 +1,5 @@
 use crate::{
-    config::BacktraceFormatter,
+    config::{BacktraceFormatter, ListStyle},
     section::help::HelpInfo,
     writers::{EnvSection, WriterExt},
     Handler,
@@ -61,9 +61,32 @@ impl eyre::EyreHandler for Handler {
         #[cfg(not(feature = "capture-spantrace"))]
         let errors = || eyre::Chain::new(error).enumerate();
 
+        fn format_prefix(
+            prefix: &str,
+        ) -> impl '_ + FnMut(usize, &mut dyn Write) -> core::fmt::Result {
+            move |ln, f| {
+                if ln == 0 {
+                    write!(f, "{} ", prefix)
+                } else {
+                    write!(f, "{: >c$} ", "", c = prefix.len())
+                }
+            }
+        }
+
         for (n, error) in errors() {
             writeln!(f)?;
-            write!(indented(f).ind(n), "{}", self.theme.error.style(error))?;
+            let mut format_func;
+
+            let mut formatter = match self.list_style {
+                ListStyle::Numbered => indented(f).ind(n),
+                ListStyle::Prefix(s) => {
+                    format_func = format_prefix(s);
+                    indented(f).with_format(Format::Custom {
+                        inserter: &mut format_func,
+                    })
+                }
+            };
+            write!(formatter, "{}", self.theme.error.style(error))?;
         }
 
         let mut separated = f.header("\n\n");

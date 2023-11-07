@@ -360,6 +360,7 @@
 use std::sync::Arc;
 
 use backtrace::Backtrace;
+use config::ListStyle;
 pub use eyre;
 #[doc(hidden)]
 pub use eyre::Report;
@@ -402,6 +403,7 @@ pub struct Handler {
     span_trace: Option<SpanTrace>,
     sections: Vec<HelpInfo>,
     display_env_section: bool,
+    list_style: ListStyle,
     #[cfg(feature = "track-caller")]
     display_location_section: bool,
     #[cfg(feature = "issue-url")]
