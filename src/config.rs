@@ -1068,6 +1068,7 @@ impl EyreHook {
             suppress_backtrace: false,
             #[cfg(feature = "capture-spantrace")]
             span_trace,
+            suppress_span_trace: false,
             sections: Vec::new(),
             display_env_section: self.display_env_section,
             #[cfg(feature = "track-caller")]

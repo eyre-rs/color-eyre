@@ -321,6 +321,11 @@ pub trait Section: crate::private::Sealed {
     /// Useful for reporting "unexceptional" errors for which a backtrace
     /// isn't really necessary.
     fn suppress_backtrace(self, suppress: bool) -> Self::Return;
+
+    /// Whether to suppress printing of collected spantrace (if any).
+    ///
+    /// Useful if the spantrace is already included in another section.
+    fn suppress_span_trace(self, suppress: bool) -> Self::Return;
 }
 
 /// Trait for printing a panic error message for the given PanicInfo

@@ -400,6 +400,7 @@ pub struct Handler {
     suppress_backtrace: bool,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
+    suppress_span_trace: bool,
     sections: Vec<HelpInfo>,
     display_env_section: bool,
     #[cfg(feature = "track-caller")]

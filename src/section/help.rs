@@ -150,6 +150,14 @@ impl Section for Report {
 
         self
     }
+
+    fn suppress_span_trace(mut self, suppress: bool) -> Self::Return {
+        if let Some(handler) = self.handler_mut().downcast_mut::<crate::Handler>() {
+            handler.suppress_span_trace = suppress;
+        }
+
+        self
+    }
 }
 
 impl<T, E> Section for Result<T, E>
@@ -246,6 +254,11 @@ where
     fn suppress_backtrace(self, suppress: bool) -> Self::Return {
         self.map_err(|error| error.into())
             .map_err(|report| report.suppress_backtrace(suppress))
+    }
+
+    fn suppress_span_trace(self, suppress: bool) -> Self::Return {
+        self.map_err(|error| error.into())
+            .map_err(|report| report.suppress_span_trace(suppress))
     }
 }
 
