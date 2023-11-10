@@ -185,6 +185,7 @@ impl fmt::Display for EnvSection<'_> {
         } else {
             lib_verbosity()
         };
+        #[cfg(feature = "show-backtrace")]
         write!(f, "{}", BacktraceOmited(!self.bt_captured))?;
 
         let mut separated = HeaderWriter {
@@ -192,6 +193,7 @@ impl fmt::Display for EnvSection<'_> {
             header: &"\n",
             started: false,
         };
+        #[cfg(feature = "show-backtrace")]
         write!(&mut separated.ready(), "{}", SourceSnippets(v))?;
         #[cfg(feature = "capture-spantrace")]
         write!(
@@ -223,8 +225,10 @@ impl fmt::Display for SpanTraceOmited<'_> {
     }
 }
 
+#[cfg(feature = "show-backtrace")]
 struct BacktraceOmited(bool);
 
+#[cfg(feature = "show-backtrace")]
 impl fmt::Display for BacktraceOmited {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Print some info on how to increase verbosity.
@@ -245,8 +249,10 @@ impl fmt::Display for BacktraceOmited {
     }
 }
 
+#[cfg(feature = "show-backtrace")]
 struct SourceSnippets(Verbosity);
 
+#[cfg(feature = "show-backtrace")]
 impl fmt::Display for SourceSnippets {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.0 <= Verbosity::Medium {
