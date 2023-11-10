@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Example of how to use OnceCell to initialize color_eyre
 
 ## [0.6.2] - 2022-07-11
 ### Added
