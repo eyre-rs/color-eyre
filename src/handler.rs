@@ -22,11 +22,23 @@ impl Handler {
         self.backtrace.as_ref()
     }
 
+    /// Store a captured `Backtrace` in this handler
+    pub fn set_backtrace(&mut self, backtrace: Backtrace) {
+        self.backtrace = Some(backtrace);
+    }
+
     /// Return a reference to the captured `SpanTrace` type
     #[cfg(feature = "capture-spantrace")]
     #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         self.span_trace.as_ref()
+    }
+
+    /// Store a captured `SpanTrace` in this handler
+    #[cfg(feature = "capture-spantrace")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
+    pub fn set_span_trace(&mut self, span_trace: SpanTrace) {
+        self.span_trace = Some(span_trace);
     }
 
     pub(crate) fn format_backtrace<'a>(
