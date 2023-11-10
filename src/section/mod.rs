@@ -1,4 +1,5 @@
 //! Helpers for adding custom sections to error reports
+use crate::eyre::Report;
 use crate::writers::WriterExt;
 use std::fmt::{self, Display};
 
@@ -229,6 +230,12 @@ pub trait Section: crate::private::Sealed {
     where
         F: FnOnce() -> E,
         E: std::error::Error + Send + Sync + 'static;
+
+    fn report(self, report: Report) -> Self::Return;
+
+    fn with_report<F>(self, report: F) -> Self::Return
+    where
+        F: FnOnce() -> Report;
 
     /// Add a Note to an error report, to be displayed after the chain of errors.
     ///
