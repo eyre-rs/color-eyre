@@ -12,10 +12,13 @@ categories = []
 keywords = []
 
 [features]
-default = ["track-caller", "capture-spantrace"]
+default = ["track-caller", "capture-spantrace", "auto-install", "track-caller"]
 capture-spantrace = ["tracing-error", "color-spantrace"]
 issue-url = ["url"]
-track-caller = []
+track-caller = ["eyre/track-caller"]
+auto-install = ["eyre/auto-install"]
+pyo3 = ["eyre/pyo3"]
+
 
 [dependencies]
 eyre = "0.6.1"
