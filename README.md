@@ -72,13 +72,13 @@ if std::env::var("RUST_SPANTRACE").is_err() {
 ### Improving perf on debug builds
 
 In debug mode `color-eyre` behaves noticably worse than `eyre`. This is caused
-by the fact that `eyre` uses `std::backtrace::Backtrace` instead of
-`backtrace::Backtrace`. The std version of backtrace is precompiled with
+by the fact that `color-eyre` uses `backtrace::Backtrace` instead of
+`std::backtrace::Backtrace`. The `std` version of backtrace is precompiled with
 optimizations, this means that whether or not you're in debug mode doesn't
-matter much for how expensive backtrace capture is, it will always be in the
-10s of milliseconds to capture. A debug version of `backtrace::Backtrace`
-however isn't so lucky, and can take an order of magnitude more time to capture
-a backtrace compared to its std counterpart.
+matter much for how expensive backtrace capture is, it will always be in the 10s
+of milliseconds to capture. The debug version of `backtrace::Backtrace` however
+isn't so lucky, and can take an order of magnitude more time to capture a
+backtrace compared to its std counterpart.
 
 Cargo [profile
 overrides](https://doc.rust-lang.org/cargo/reference/profiles.html#overrides)
@@ -200,16 +200,10 @@ filters installed.
 For an example of how to setup custom filters, check out [`examples/custom_filter.rs`].
 
 [`eyre`]: https://docs.rs/eyre
-[`tracing-error`]: https://docs.rs/tracing-error
 [`color-backtrace`]: https://docs.rs/color-backtrace
-[`eyre::EyreHandler`]: https://docs.rs/eyre/*/eyre/trait.EyreHandler.html
 [`backtrace::Backtrace`]: https://docs.rs/backtrace/*/backtrace/struct.Backtrace.html
-[`tracing_error::SpanTrace`]: https://docs.rs/tracing-error/*/tracing_error/struct.SpanTrace.html
 [`color-spantrace`]: https://github.com/yaahc/color-spantrace
 [`Section`]: https://docs.rs/color-eyre/*/color_eyre/section/trait.Section.html
-[`eyre::Report`]: https://docs.rs/eyre/*/eyre/struct.Report.html
-[`eyre::Result`]: https://docs.rs/eyre/*/eyre/type.Result.html
-[`Handler`]: https://docs.rs/color-eyre/*/color_eyre/struct.Handler.html
 [`examples/usage.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/usage.rs
 [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
