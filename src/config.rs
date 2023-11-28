@@ -191,11 +191,11 @@ pub struct Frame {
 }
 
 #[derive(Debug)]
-struct StyledFrame<'a>(&'a Frame, Theme);
+struct StyledFrame<'a>(&'a Frame, Theme, Verbosity);
 
 impl<'a> fmt::Display for StyledFrame<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self(frame, theme) = self;
+        let Self(frame, theme, backtrace_verbosity) = self;
 
         let is_dependency_code = frame.is_dependency_code();
 
@@ -251,14 +251,8 @@ impl<'a> fmt::Display for StyledFrame<'a> {
             lineno.style(theme.line_number),
         )?;
 
-        let v = if std::thread::panicking() {
-            panic_verbosity()
-        } else {
-            lib_verbosity()
-        };
-
         // Maybe print source.
-        if v >= Verbosity::Full {
+        if backtrace_verbosity >= &Verbosity::Full {
             write!(&mut separated.ready(), "{}", SourceSection(frame, *theme))?;
         }
 
@@ -417,6 +411,7 @@ impl Frame {
 
 /// Builder for customizing the behavior of the global panic and error report hooks
 pub struct HookBuilder {
+    backtrace_verbosity: Option<Verbosity>,
     filters: Vec<Box<FilterCallback>>,
     capture_span_trace_by_default: bool,
     display_env_section: bool,
@@ -474,6 +469,7 @@ impl HookBuilder {
             issue_metadata: vec![],
             #[cfg(feature = "issue-url")]
             issue_filter: Arc::new(|_| true),
+            backtrace_verbosity: None,
         }
     }
 
@@ -649,6 +645,13 @@ impl HookBuilder {
         self
     }
 
+    /// Configures the hook to capture a backtrace at the specified verbosity level regardless of
+    /// the `RUST_BACKTRACE` environment variable.
+    pub fn capture_backtrace(mut self, verbosity: Option<Verbosity>) -> Self {
+        self.backtrace_verbosity = verbosity;
+        self
+    }
+
     /// Configures the enviroment varible info section and whether or not it is displayed
     pub fn display_env_section(mut self, cond: bool) -> Self {
         self.display_env_section = cond;
@@ -725,6 +728,7 @@ impl HookBuilder {
         #[cfg(feature = "issue-url")]
         let metadata = Arc::new(self.issue_metadata);
         let panic_hook = PanicHook {
+            backtrace_verbosity: self.backtrace_verbosity,
             filters: self.filters.into(),
             section: self.panic_section,
             #[cfg(feature = "capture-spantrace")]
@@ -743,6 +747,7 @@ impl HookBuilder {
         };
 
         let eyre_hook = EyreHook {
+            backtrace_verbosity: self.backtrace_verbosity,
             filters: panic_hook.filters.clone(),
             #[cfg(feature = "capture-spantrace")]
             capture_span_trace_by_default: self.capture_span_trace_by_default,
@@ -859,13 +864,11 @@ pub struct PanicReport<'a> {
     backtrace: Option<backtrace::Backtrace>,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<tracing_error::SpanTrace>,
+    backtrace_verbosity: Verbosity,
 }
 
 fn print_panic_info(report: &PanicReport<'_>, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     report.hook.panic_message.display(report.panic_info, f)?;
-
-    let v = panic_verbosity();
-    let capture_bt = v != Verbosity::Minimal;
 
     let mut separated = f.header("\n\n");
 
@@ -885,7 +888,7 @@ fn print_panic_info(report: &PanicReport<'_>, f: &mut fmt::Formatter<'_>) -> fmt
     }
 
     if let Some(bt) = report.backtrace.as_ref() {
-        let fmted_bt = report.hook.format_backtrace(bt);
+        let fmted_bt = report.hook.format_backtrace(bt, report.backtrace_verbosity);
         write!(
             indented(&mut separated.ready()).with_format(Format::Uniform { indentation: "  " }),
             "{}",
@@ -895,7 +898,7 @@ fn print_panic_info(report: &PanicReport<'_>, f: &mut fmt::Formatter<'_>) -> fmt
 
     if report.hook.display_env_section {
         let env_section = EnvSection {
-            bt_captured: &capture_bt,
+            backtrace_verbosity: report.backtrace_verbosity,
             #[cfg(feature = "capture-spantrace")]
             span_trace: report.span_trace.as_ref(),
         };
@@ -940,6 +943,7 @@ impl fmt::Display for PanicReport<'_> {
 
 /// A panic reporting hook
 pub struct PanicHook {
+    backtrace_verbosity: Option<Verbosity>,
     filters: Arc<[Box<FilterCallback>]>,
     section: Option<Box<dyn Display + Send + Sync + 'static>>,
     panic_message: Box<dyn PanicMessage>,
@@ -959,11 +963,13 @@ impl PanicHook {
     pub(crate) fn format_backtrace<'a>(
         &'a self,
         trace: &'a backtrace::Backtrace,
+        verbosity: Verbosity,
     ) -> BacktraceFormatter<'a> {
         BacktraceFormatter {
             filters: &self.filters,
             inner: trace,
             theme: self.theme,
+            verbosity,
         }
     }
 
@@ -994,8 +1000,8 @@ impl PanicHook {
         &'a self,
         panic_info: &'a std::panic::PanicInfo<'_>,
     ) -> PanicReport<'a> {
-        let v = panic_verbosity();
-        let capture_bt = v != Verbosity::Minimal;
+        let backtrace_verbosity = self.backtrace_verbosity.unwrap_or_else(panic_verbosity);
+        let capture_bt = backtrace_verbosity != Verbosity::Minimal;
 
         #[cfg(feature = "capture-spantrace")]
         let span_trace = if self.spantrace_capture_enabled() {
@@ -1011,6 +1017,7 @@ impl PanicHook {
         };
 
         PanicReport {
+            backtrace_verbosity,
             panic_info,
             #[cfg(feature = "capture-spantrace")]
             span_trace,
@@ -1022,6 +1029,7 @@ impl PanicHook {
 
 /// An eyre reporting hook used to construct `EyreHandler`s
 pub struct EyreHook {
+    backtrace_verbosity: Option<Verbosity>,
     filters: Arc<[Box<FilterCallback>]>,
     #[cfg(feature = "capture-spantrace")]
     capture_span_trace_by_default: bool,
@@ -1047,7 +1055,9 @@ type HookFunc = Box<
 impl EyreHook {
     #[allow(unused_variables)]
     pub(crate) fn default(&self, error: &(dyn std::error::Error + 'static)) -> crate::Handler {
-        let backtrace = if lib_verbosity() != Verbosity::Minimal {
+        let backtrace_verbosity = self.backtrace_verbosity.unwrap_or_else(lib_verbosity);
+
+        let backtrace = if backtrace_verbosity != Verbosity::Minimal {
             Some(backtrace::Backtrace::new())
         } else {
             None
@@ -1065,6 +1075,7 @@ impl EyreHook {
         crate::Handler {
             filters: self.filters.clone(),
             backtrace,
+            backtrace_verbosity,
             suppress_backtrace: false,
             #[cfg(feature = "capture-spantrace")]
             span_trace,
@@ -1103,6 +1114,7 @@ impl EyreHook {
 }
 
 pub(crate) struct BacktraceFormatter<'a> {
+    pub(crate) verbosity: Verbosity,
     pub(crate) filters: &'a [Box<FilterCallback>],
     pub(crate) inner: &'a backtrace::Backtrace,
     pub(crate) theme: Theme,
@@ -1175,7 +1187,11 @@ impl fmt::Display for BacktraceFormatter<'_> {
             if frame_delta != 0 {
                 print_hidden!(frame_delta);
             }
-            write!(&mut separated.ready(), "{}", StyledFrame(frame, self.theme))?;
+            write!(
+                &mut separated.ready(),
+                "{}",
+                StyledFrame(frame, self.theme, self.verbosity)
+            )?;
             last_n = frame.n;
         }
 
@@ -1189,10 +1205,16 @@ impl fmt::Display for BacktraceFormatter<'_> {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub(crate) enum Verbosity {
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+/// Backtrace capture verbosity
+pub enum Verbosity {
+    /// Do not capture a backtrace, only the call site
     Minimal,
+    /// Capture a backtrace equivalent to `RUST_BACKTRACE=1`
     Medium,
+    /// Capture a backtrace equivalent to `RUST_BACKTRACE=full`.
+    ///
+    /// This includes source code snippets where available.
     Full,
 }
 

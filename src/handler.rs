@@ -37,6 +37,7 @@ impl Handler {
             filters: &self.filters,
             inner: trace,
             theme: self.theme,
+            verbosity: self.backtrace_verbosity,
         }
     }
 }
@@ -141,7 +142,7 @@ impl eyre::EyreHandler for Handler {
 
         if self.display_env_section {
             let env_section = EnvSection {
-                bt_captured: &self.backtrace.is_some(),
+                backtrace_verbosity: self.backtrace_verbosity,
                 #[cfg(feature = "capture-spantrace")]
                 span_trace,
             };

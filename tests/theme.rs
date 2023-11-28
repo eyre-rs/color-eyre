@@ -1,6 +1,6 @@
 // Note: It's recommended, not to change anything above or below (see big comment below)
 
-use color_eyre::{eyre::Report, Section};
+use color_eyre::{config::Verbosity, eyre::Report, Section};
 
 #[rustfmt::skip]
 #[derive(Debug, thiserror::Error)]
@@ -224,8 +224,6 @@ fn test_backwards_compatibility(target: String, file_name: &str) {
 }
 
 fn setup() {
-    std::env::set_var("RUST_LIB_BACKTRACE", "1");
-
     #[cfg(feature = "capture-spantrace")]
     {
         use tracing_subscriber::prelude::*;
@@ -243,7 +241,10 @@ fn setup() {
             .init();
     }
 
-    color_eyre::install().expect("Failed to install `color_eyre`");
+    color_eyre::config::HookBuilder::default()
+        .capture_backtrace(Some(Verbosity::Medium))
+        .install()
+        .expect("Failed to install `color_eyre`");
 
     /*
         # Easy way to test styles

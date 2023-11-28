@@ -360,6 +360,7 @@
 use std::sync::Arc;
 
 use backtrace::Backtrace;
+use config::Verbosity;
 pub use eyre;
 #[doc(hidden)]
 pub use eyre::Report;
@@ -397,6 +398,7 @@ mod writers;
 pub struct Handler {
     filters: Arc<[Box<config::FilterCallback>]>,
     backtrace: Option<Backtrace>,
+    backtrace_verbosity: Verbosity,
     suppress_backtrace: bool,
     #[cfg(feature = "capture-spantrace")]
     span_trace: Option<SpanTrace>,
