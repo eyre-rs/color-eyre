@@ -1,8 +1,6 @@
 use crate::config::{lib_verbosity, panic_verbosity, Verbosity};
 use fmt::Write;
 use std::fmt::{self, Display};
-#[cfg(feature = "capture-spantrace")]
-use tracing_error::{SpanTrace, SpanTraceStatus};
 
 #[allow(explicit_outlives_requirements)]
 pub(crate) struct HeaderWriter<'a, H, W>

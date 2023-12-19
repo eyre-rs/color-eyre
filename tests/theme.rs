@@ -25,17 +25,14 @@ fn get_error(msg: &'static str) -> Report {
     None::<Option<()>>.ok_or_else(|| create_report(msg)).unwrap_err()
 }
 
-#[cfg(all(not(feature = "track-caller"), not(feature = "capture-spantrace"),))]
+#[cfg(all(not(feature = "track-caller")))]
 static ERROR_FILE_NAME: &str = "theme_error_control_minimal.txt";
 
-#[cfg(all(feature = "track-caller", not(feature = "capture-spantrace"),))]
+#[cfg(all(feature = "track-caller"))]
 static ERROR_FILE_NAME: &str = "theme_error_control_location.txt";
 
-#[cfg(all(not(feature = "track-caller"), feature = "capture-spantrace",))]
+#[cfg(all(not(feature = "track-caller")))]
 static ERROR_FILE_NAME: &str = "theme_error_control_spantrace.txt";
-
-#[cfg(all(feature = "capture-spantrace", feature = "track-caller",))]
-static ERROR_FILE_NAME: &str = "theme_error_control.txt";
 
 #[test]
 fn test_error_backwards_compatibility() {
@@ -91,11 +88,7 @@ fn test_error_backwards_compatibility() {
     test_backwards_compatibility(target, ERROR_FILE_NAME)
 }
 
-#[cfg(not(feature = "capture-spantrace"))]
 static PANIC_FILE_NAME: &str = "theme_panic_control_no_spantrace.txt";
-
-#[cfg(feature = "capture-spantrace")]
-static PANIC_FILE_NAME: &str = "theme_panic_control.txt";
 
 // The following tests the installed panic handler
 #[test]

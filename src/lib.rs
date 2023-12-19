@@ -365,7 +365,6 @@ pub use eyre;
 pub use eyre::Report;
 #[doc(hidden)]
 pub use eyre::Result;
-pub use owo_colors;
 use section::help::HelpInfo;
 #[doc(hidden)]
 pub use section::Section as Help;
@@ -411,7 +410,6 @@ pub struct Handler {
         std::sync::Arc<Vec<(String, Box<dyn std::fmt::Display + Send + Sync + 'static>)>>,
     #[cfg(feature = "issue-url")]
     issue_filter: std::sync::Arc<config::IssueFilterCallback>,
-    theme: crate::config::Theme,
     #[cfg(feature = "track-caller")]
     location: Option<&'static std::panic::Location<'static>>,
 }

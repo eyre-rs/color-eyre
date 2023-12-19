@@ -7,8 +7,6 @@ use crate::{
 use backtrace::Backtrace;
 use indenter::{indented, Format};
 use std::fmt::Write;
-#[cfg(feature = "capture-spantrace")]
-use tracing_error::{ExtractSpanTrace, SpanTrace};
 
 impl std::fmt::Debug for Handler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -22,13 +20,6 @@ impl Handler {
         self.backtrace.as_ref()
     }
 
-    /// Return a reference to the captured `SpanTrace` type
-    #[cfg(feature = "capture-spantrace")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "capture-spantrace")))]
-    pub fn span_trace(&self) -> Option<&SpanTrace> {
-        self.span_trace.as_ref()
-    }
-
     pub(crate) fn format_backtrace<'a>(
         &'a self,
         trace: &'a backtrace::Backtrace,
@@ -36,7 +27,6 @@ impl Handler {
         BacktraceFormatter {
             filters: &self.filters,
             inner: trace,
-            theme: self.theme,
         }
     }
 }
@@ -51,19 +41,11 @@ impl eyre::EyreHandler for Handler {
             return core::fmt::Debug::fmt(error, f);
         }
 
-        #[cfg(feature = "capture-spantrace")]
-        let errors = || {
-            eyre::Chain::new(error)
-                .filter(|e| e.span_trace().is_none())
-                .enumerate()
-        };
-
-        #[cfg(not(feature = "capture-spantrace"))]
         let errors = || eyre::Chain::new(error).enumerate();
 
         for (n, error) in errors() {
             writeln!(f)?;
-            write!(indented(f).ind(n), "{}", self.theme.error.style(error))?;
+            write!(indented(f).ind(n), "{}", error)?;
         }
 
         let mut separated = f.header("\n\n");
@@ -74,7 +56,7 @@ impl eyre::EyreHandler for Handler {
                 separated.ready(),
                 "{}",
                 crate::SectionExt::header(
-                    crate::fmt::LocationSection(self.location, self.theme),
+                    crate::fmt::LocationSection(self.location),
                     "Location:"
                 )
             )?;
@@ -83,7 +65,7 @@ impl eyre::EyreHandler for Handler {
         for section in self
             .sections
             .iter()
-            .filter(|s| matches!(s, HelpInfo::Error(_, _)))
+            .filter(|s| matches!(s, HelpInfo::Error(_)))
         {
             write!(separated.ready(), "{}", section)?;
         }
@@ -133,7 +115,7 @@ impl eyre::EyreHandler for Handler {
         for section in self
             .sections
             .iter()
-            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_, _)))
+            .filter(|s| !matches!(s, HelpInfo::Custom(_) | HelpInfo::Error(_)))
         {
             write!(&mut f, "{}", section)?;
             f = h.ready();

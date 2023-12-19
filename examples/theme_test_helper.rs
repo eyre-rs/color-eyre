@@ -4,7 +4,7 @@
 
 //! See "tests/theme.rs" for more information.
 
-use color_eyre::{eyre::Report, Section};
+use nocolor_eyre::{eyre::Report, Section};
 
 #[rustfmt::skip]
 #[derive(Debug, thiserror::Error)]
@@ -40,22 +40,5 @@ fn main() {
 fn setup() {
     std::env::set_var("RUST_BACKTRACE", "1");
 
-    #[cfg(feature = "capture-spantrace")]
-    {
-        use tracing_subscriber::prelude::*;
-        use tracing_subscriber::{fmt, EnvFilter};
-
-        let fmt_layer = fmt::layer().with_target(false);
-        let filter_layer = EnvFilter::try_from_default_env()
-            .or_else(|_| EnvFilter::try_new("info"))
-            .unwrap();
-
-        tracing_subscriber::registry()
-            .with(filter_layer)
-            .with(fmt_layer)
-            .with(tracing_error::ErrorLayer::default())
-            .init();
-    }
-
-    color_eyre::install().expect("Failed to install `color_eyre`");
+    nocolor_eyre::install().expect("Failed to install `color_eyre`");
 }

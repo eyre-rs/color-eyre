@@ -34,7 +34,6 @@ jobs:
           - --all-features
           - --no-default-features
           - --no-default-features --features issue-url
-          - --no-default-features --features capture-spantrace
           - --no-default-features --features track-caller
     steps:
       - uses: actions/checkout@v1

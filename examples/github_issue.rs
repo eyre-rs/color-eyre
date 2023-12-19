@@ -6,15 +6,12 @@ use tracing::instrument;
 #[instrument]
 #[cfg(feature = "issue-url")]
 fn main() -> Result<(), Report> {
-    #[cfg(feature = "capture-spantrace")]
-    install_tracing();
-
-    color_eyre::config::HookBuilder::default()
+    nocolor_eyre::config::HookBuilder::default()
         .issue_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new"))
         .add_issue_metadata("version", env!("CARGO_PKG_VERSION"))
         .issue_filter(|kind| match kind {
-            color_eyre::ErrorKind::NonRecoverable(_) => false,
-            color_eyre::ErrorKind::Recoverable(_) => true,
+            nocolor_eyre::ErrorKind::NonRecoverable(_) => false,
+            nocolor_eyre::ErrorKind::Recoverable(_) => true,
         })
         .install()?;
 
@@ -29,24 +26,6 @@ fn main() -> Result<(), Report> {
 #[cfg(not(feature = "issue-url"))]
 fn main() {
     unimplemented!("this example requires the \"issue-url\" feature")
-}
-
-#[cfg(feature = "capture-spantrace")]
-fn install_tracing() {
-    use tracing_error::ErrorLayer;
-    use tracing_subscriber::prelude::*;
-    use tracing_subscriber::{fmt, EnvFilter};
-
-    let fmt_layer = fmt::layer().with_target(false);
-    let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap();
-
-    tracing_subscriber::registry()
-        .with(filter_layer)
-        .with(fmt_layer)
-        .with(ErrorLayer::default())
-        .init();
 }
 
 #[instrument]
