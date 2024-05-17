@@ -365,6 +365,8 @@ pub use eyre;
 pub use eyre::Report;
 #[doc(hidden)]
 pub use eyre::Result;
+
+#[cfg(feature = "export_owo_colors")]
 pub use owo_colors;
 use section::help::HelpInfo;
 #[doc(hidden)]

@@ -12,10 +12,11 @@ categories = []
 keywords = []
 
 [features]
-default = ["track-caller", "capture-spantrace"]
+default = ["track-caller", "capture-spantrace", "export_owo_colors"]
 capture-spantrace = ["tracing-error", "color-spantrace"]
 issue-url = ["url"]
 track-caller = []
+export_owo_colors = []
 
 [dependencies]
 eyre = "0.6.1"
