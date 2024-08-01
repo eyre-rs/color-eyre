@@ -1,5 +1,12 @@
 ## color-eyre
 
+> [!NOTE]
+> This repo has been merged into [https://github.com/eyre-rs/color-eyre](https://github.com/eyre-rs/eyre)
+>
+> Please defer all issues and pull requests to the monorepo :)
+
+---
+
 [![Build Status][actions-badge]][actions-url]
 [![Latest Version][version-badge]][version-url]
 [![Rust Documentation][docs-badge]][docs-url]
