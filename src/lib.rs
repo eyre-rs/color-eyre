@@ -334,6 +334,7 @@
 //! [`examples/custom_filter.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_filter.rs
 //! [`examples/custom_section.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/custom_section.rs
 //! [`examples/multiple_errors.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/multiple_errors.rs
+//! [`examples/cargo_tests.rs`]: https://github.com/yaahc/color-eyre/blob/master/examples/cargo_tests.rs
 #![doc(html_root_url = "https://docs.rs/color-eyre/0.6.2")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(
@@ -455,6 +456,27 @@ pub enum ErrorKind<'a> {
 ///     # Ok(())
 /// }
 /// ```
+/// If you need to potentially call `install` multiple times, (e.g. for
+/// `cargo test`) you can use `once_cell::sync::OnceCell` to ensure that the
+/// installation is only done once.  For example:
+///
+/// ```rust
+/// use once_cell::sync::OnceCell;
+/// pub struct ColorEyreGuard(());
+/// static INIT_COLOR_EYRE: OnceCell<ColorEyreGuard> = OnceCell::new();
+///
+/// pub fn init_color_eyre() {
+///     INIT_COLOR_EYRE.get_or_init(|| {
+///         color_eyre::install().expect("Failed to initialize color_eyre");
+///         ColorEyreGuard(())
+///     });
+/// }
+/// ```
+/// and then you can call init_color_eyre from multiple spots without worrying
+/// about it panicking.
+///
+/// See the [`examples/cargo_tests.rs`](https://github.com/yaahc/color-eyre/blob/master/examples/cargo_tests.rs):  for a practical example.
+
 pub fn install() -> Result<(), crate::eyre::Report> {
     config::HookBuilder::default().install()
 }
