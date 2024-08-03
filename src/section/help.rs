@@ -143,6 +143,29 @@ impl Section for Report {
         self
     }
 
+    fn report(mut self, report: Report) -> Self::Return {
+        if let Some(handler) = self.handler_mut().downcast_mut::<crate::Handler>() {
+            handler
+                .sections
+                .push(HelpInfo::Report(report, handler.theme));
+        }
+
+        self
+    }
+
+    fn with_report<F>(mut self, report: F) -> Self::Return
+    where
+        F: FnOnce() -> Report,
+    {
+        if let Some(handler) = self.handler_mut().downcast_mut::<crate::Handler>() {
+            handler
+                .sections
+                .push(HelpInfo::Report(report(), handler.theme));
+        }
+
+        self
+    }
+
     fn suppress_backtrace(mut self, suppress: bool) -> Self::Return {
         if let Some(handler) = self.handler_mut().downcast_mut::<crate::Handler>() {
             handler.suppress_backtrace = suppress;
@@ -243,6 +266,19 @@ where
             .map_err(|report| report.error(error()))
     }
 
+    fn report(self, report: Report) -> Self::Return {
+        self.map_err(|error| error.into())
+            .map_err(|full_report| full_report.report(report))
+    }
+
+    fn with_report<F>(self, report: F) -> Self::Return
+    where
+        F: FnOnce() -> Report,
+    {
+        self.map_err(|error| error.into())
+            .map_err(|full_report| full_report.report(report()))
+    }
+
     fn suppress_backtrace(self, suppress: bool) -> Self::Return {
         self.map_err(|error| error.into())
             .map_err(|report| report.suppress_backtrace(suppress))
@@ -251,6 +287,7 @@ where
 
 pub(crate) enum HelpInfo {
     Error(Box<dyn std::error::Error + Send + Sync + 'static>, Theme),
+    Report(Report, Theme),
     Custom(Box<dyn Display + Send + Sync + 'static>),
     Note(Box<dyn Display + Send + Sync + 'static>, Theme),
     Warning(Box<dyn Display + Send + Sync + 'static>, Theme),
@@ -291,6 +328,17 @@ impl Display for HelpInfo {
 
                 Ok(())
             }
+            HelpInfo::Report(report, theme) => {
+                let errors = report.chain();
+
+                write!(f, "Error:")?;
+                for (n, error) in errors.enumerate() {
+                    writeln!(f)?;
+                    write!(indented(f).ind(n), "{}", error.style(theme.help_info_error))?;
+                }
+
+                Ok(())
+            }
         }
     }
 }
@@ -315,6 +363,7 @@ impl fmt::Debug for HelpInfo {
                 .field(&format_args!("{}", custom))
                 .finish(),
             HelpInfo::Error(error, ..) => f.debug_tuple("Error").field(error).finish(),
+            HelpInfo::Report(report, ..) => f.debug_tuple("Report").field(report).finish(),
         }
     }
 }
